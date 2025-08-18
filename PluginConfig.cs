@@ -1,5 +1,9 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using UnityEngine;
 using IPA.Config.Stores;
+using IPA.Config.Stores.Attributes;
+using IPA.Config.Stores.Converters;
 
 [assembly: InternalsVisibleTo(GeneratedStore.AssemblyVisibilityTarget)]
 
@@ -7,6 +11,10 @@ namespace OneClickLight;
 
 internal class PluginConfig
 {
+    internal static PluginConfig? Instance { get; set; }
+
+    public virtual bool Enabled { get; set; } = false;
+    
     // Members must be 'virtual' if you want BSIPA to detect a value change and save the config automatically
     // You can assign a default value to be used when the config is first created by assigning one after '=' 
     // examples:
@@ -19,12 +27,14 @@ internal class PluginConfig
     /// This is called whenever BSIPA reads the config from disk (including when file changes are detected).
     /// </summary>
     public virtual void OnReload() { }
+    */
 
     /// <summary>
     /// Call this to force BSIPA to update the config file. This is also called by BSIPA if it detects the file was modified.
     /// </summary>
     public virtual void Changed() { }
 
+    /*
     /// <summary>
     /// Call this to have BSIPA copy the values from <paramref name="other"/> into this config.
     /// </summary>

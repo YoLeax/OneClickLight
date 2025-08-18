@@ -24,6 +24,7 @@ internal class Plugin
 
         // Creates an instance of PluginConfig used by IPA to load and store config values
         var pluginConfig = ipaConfig.Generated<PluginConfig>();
+        PluginConfig.Instance = pluginConfig;
 
         // Instructs SiraUtil to use this installer during Beat Saber's initialization
         // The PluginConfig is used as a constructor parameter for AppInstaller, so pass it to zenjector.Install()

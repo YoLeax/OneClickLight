@@ -24,10 +24,5 @@ internal class AppInstaller : Installer
     {
         // This allows the same instance of PluginConfig to be injected into in any class anywhere in the plugin
         Container.BindInstance(pluginConfig).AsSingle();
-
-        // This will create a single instance of the type ExampleController and implement its interfaces
-        // The BindInterfacesTo shortcut is useful since you don't want to write out and remember every base type:
-        // Container.Bind(typeof(IInitializable, typeof(IDisposable)).To<ExampleController>().AsSingle();
-        Container.BindInterfacesTo<ExampleController>().AsSingle();
     }
 }

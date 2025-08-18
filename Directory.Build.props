@@ -11,7 +11,7 @@
     <GameVersion>1.39.1</GameVersion>
     <Description>Settings of environment, color, light, chroma, all in one click to switch.</Description>
     <!--<PluginIcon></PluginIcon>-->
-    <!--<ProjectSource></ProjectSource>-->
+    <ProjectSource>https://github.com/YoLeax/OneClickLight</ProjectSource>
     <!--<ProjectHome></ProjectHome>-->
     <!--<DonateUrl></DonateUrl>-->
   </PropertyGroup>
