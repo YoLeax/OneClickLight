@@ -1,4 +1,6 @@
 <bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
     xsi:noNamespaceSchemaLocation='https://monkeymanboy.github.io/BSML-Docs/BSMLSchema.xsd'>
+    <vertical vertical-fit="PreferredSize" pref-width="90">
     <toggle-setting value="enabled" on-change="on_enabled_change" text="Enabled"/>
+    </vertical>
 </bg>

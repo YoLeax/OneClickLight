@@ -40,4 +40,51 @@ internal class PluginConfig
     /// </summary>
     public virtual void CopyFrom(PluginConfig other) { }
     */
+
+    public class LightCfg
+    {
+        public virtual string Name { get; set; } = "New Config";
+        
+        // BaseGame
+
+        public virtual EnvironmentEffectsFilterPreset EnvironmentEffects { get; set; } =
+            EnvironmentEffectsFilterPreset.AllEffects;
+        
+        public virtual EnvironmentEffectsFilterPreset EpEnvironmentEffects { get; set; } =
+            EnvironmentEffectsFilterPreset.AllEffects;
+        
+        public virtual bool NoTextsOrHUDs { get; set; } = false;
+        
+        public virtual bool AdvancedHUD { get; set; } = false;
+        
+        public virtual ArcVisibilityType ArcVisibility { get; set; } = ArcVisibilityType.Standard;
+
+        public virtual bool OverrideDefaultEnvironments { get; set; } = false;
+
+        public virtual bool OverrideDefaultColors { get; set; } = false;
+        
+        // SongCore
+        
+        public virtual bool AllowCustomSongNoteColors { get; set; } = false;
+        
+        public virtual bool AllowCustomSongObstacleColors { get; set; } = false;
+        
+        public virtual bool AllowCustomSongEnvironmentColors { get; set; } = false;
+        
+        // Chroma
+
+        public virtual bool ChromaUseCustomEnvironment { get; set; } = false;
+
+        public virtual bool ChromaDisableEnvironmentEnhancements { get; set; } = false;
+        
+        public virtual bool ChromaDisableNoteColoring { get; set; } = false;
+        
+        public virtual bool ChromaDisableChromaEvents { get; set; } = false;
+        
+        public virtual bool ChromaForceZenModeWalls { get; set; } = false;
+        
+        // JDFixer
+        
+        public virtual bool JDFixerEnabled { get; set; } = false;
+    }
 }
