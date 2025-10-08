@@ -13,7 +13,10 @@ internal class PluginConfig
 {
     internal static PluginConfig? Instance { get; set; }
 
-    public virtual bool Enabled { get; set; } = false;
+    public virtual bool NotInitialized { get; set; } = true;
+
+    public virtual LightConfig CfgOn { get; set; } = new LightConfig();
+    public virtual LightConfig CfgOff { get; set; } = new LightConfig();
     
     // Members must be 'virtual' if you want BSIPA to detect a value change and save the config automatically
     // You can assign a default value to be used when the config is first created by assigning one after '=' 
@@ -41,50 +44,87 @@ internal class PluginConfig
     public virtual void CopyFrom(PluginConfig other) { }
     */
 
-    public class LightCfg
+    internal void Init()
     {
-        public virtual string Name { get; set; } = "New Config";
-        
+        if (NotInitialized)
+        {
+            CfgOff.EnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects;
+            CfgOff.EpEnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects;
+            CfgOff.NoTextsOrHUDs = false;
+            CfgOff.AdvancedHUD = true;
+            CfgOff.OverrideDefaultEnvironments = true;
+            CfgOff.OverrideDefaultColors = true;
+
+            CfgOff.AllowCustomSongNoteColors = false;
+            CfgOff.AllowCustomSongObstacleColors = false;
+            CfgOff.AllowCustomSongEnvironmentColors = false;
+
+            CfgOff.ChromaDisableEnvironmentEnhancements = true;
+            CfgOff.ChromaDisableNoteColoring = true;
+            CfgOff.ChromaDisableChromaEvents = true;
+
+            NotInitialized = false;
+        }
+    }
+
+    public class LightConfig
+    {
         // BaseGame
 
+        public virtual bool OEnvironmentEffects { get; set; } = true;
         public virtual EnvironmentEffectsFilterPreset EnvironmentEffects { get; set; } =
             EnvironmentEffectsFilterPreset.AllEffects;
         
+        public virtual bool OEpEnvironmentEffects { get; set; } = true;
         public virtual EnvironmentEffectsFilterPreset EpEnvironmentEffects { get; set; } =
             EnvironmentEffectsFilterPreset.AllEffects;
         
-        public virtual bool NoTextsOrHUDs { get; set; } = false;
+        public virtual bool ONoTextsOrHUDs { get; set; } = true;
+        public virtual bool NoTextsOrHUDs { get; set; } = true;
         
+        public virtual bool OAdvancedHUD { get; set; } = true;
         public virtual bool AdvancedHUD { get; set; } = false;
         
+        public virtual bool OArcVisibility { get; set; } = false;
         public virtual ArcVisibilityType ArcVisibility { get; set; } = ArcVisibilityType.Standard;
 
+        public virtual bool OOverrideDefaultEnvironments { get; set; } = true;
         public virtual bool OverrideDefaultEnvironments { get; set; } = false;
 
+        public virtual bool OOverrideDefaultColors { get; set; } = true;
         public virtual bool OverrideDefaultColors { get; set; } = false;
         
         // SongCore
         
-        public virtual bool AllowCustomSongNoteColors { get; set; } = false;
+        public virtual bool OAllowCustomSongNoteColors { get; set; } = true;
+        public virtual bool AllowCustomSongNoteColors { get; set; } = true;
         
-        public virtual bool AllowCustomSongObstacleColors { get; set; } = false;
+        public virtual bool OAllowCustomSongObstacleColors { get; set; } = true;
+        public virtual bool AllowCustomSongObstacleColors { get; set; } = true;
         
-        public virtual bool AllowCustomSongEnvironmentColors { get; set; } = false;
+        public virtual bool OAllowCustomSongEnvironmentColors { get; set; } = true;
+        public virtual bool AllowCustomSongEnvironmentColors { get; set; } = true;
         
         // Chroma
 
+        public virtual bool OChromaUseCustomEnvironment { get; set; } = false;
         public virtual bool ChromaUseCustomEnvironment { get; set; } = false;
 
+        public virtual bool OChromaDisableEnvironmentEnhancements { get; set; } = true;
         public virtual bool ChromaDisableEnvironmentEnhancements { get; set; } = false;
         
+        public virtual bool OChromaDisableNoteColoring { get; set; } = true;
         public virtual bool ChromaDisableNoteColoring { get; set; } = false;
         
+        public virtual bool OChromaDisableChromaEvents { get; set; } = true;
         public virtual bool ChromaDisableChromaEvents { get; set; } = false;
         
+        public virtual bool OChromaForceZenModeWalls { get; set; } = false;
         public virtual bool ChromaForceZenModeWalls { get; set; } = false;
         
         // JDFixer
         
+        public virtual bool OJDFixerEnabled { get; set; } = false;
         public virtual bool JDFixerEnabled { get; set; } = false;
     }
 }

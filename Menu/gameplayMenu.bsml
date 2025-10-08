@@ -1,6 +1,215 @@
 <bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
     xsi:noNamespaceSchemaLocation='https://monkeymanboy.github.io/BSML-Docs/BSMLSchema.xsd'>
-    <vertical vertical-fit="PreferredSize" pref-width="90">
-    <toggle-setting value="enabled" on-change="on_enabled_change" text="Enabled"/>
+
+    <vertical active="~main_page_active" vertical-fit="PreferredSize">
+        <horizontal horizontal-fit="PreferredSize" vertical-fit="PreferredSize" spacing="1">
+            <button text="On" font-size="10" face-color="#00b616" pref-width="20" pref-height="16"/>
+            <button text="Off" font-size="10" face-color="#c81717" pref-width="20" pref-height="16"/>
+            <vertical horizontal-fit="PreferredSize" vertical-fit="PreferredSize">
+                <horizontal pref-height="8.2"/>
+                <button on-click="edit_config_click" text="Edit Config" pref-width="22"/>
+            </vertical>
+        </horizontal>
+        <horizontal pref-height="40"/>
     </vertical>
+    
+    <horizontal active="~edit_config_page_active" vertical-fit="PreferredSize" pref-width="110">
+        <vertical pref-width="10"/>
+        <vertical vertical-fit="PreferredSize" pref-width="100" child-alignment="UpperLeft">
+            
+            <!--
+            <horizontal>
+                
+                <vertical vertical-fit="PreferredSize" pref-width="90">
+                    <horizontal spacing="2">
+                        <horizontal pref-width="20" child-alignment="MiddleRight">
+                            <button on-click="back_click" text="&lt;- Back" face-color="red" pref-width="16"/>
+                        </horizontal>
+                        <horizontal pref-width="68" child-alignment="MiddleCenter" spacing="2">
+                            <vertical pref-width="20" child-expand-width="true" bg="round-rect-panel" bg-alpha="1">
+                                <text text="Now Editing:" align="Center"/>
+                            </vertical>
+                            <background id="edit_on_bg" bg="panel-top" bg-color="#00b616" bg-alpha="0.3">
+                                <clickable-text on-click="edit_on_click" text="ON" align="Midline" italics="true" size-delta-x="20"/>
+                            </background>
+                            <background id="edit_off_bg" bg="panel-top" bg-color="#c81717" bg-alpha="0.3">
+                                <clickable-text on-click="edit_off_click" text="OFF" align="Midline" italics="true" size-delta-x="20"/>
+                            </background>
+                        </horizontal>
+                    </horizontal>
+                </vertical>
+                
+                <vertical pref-width="10"/>
+            </horizontal>
+            -->
+
+            <horizontal pref-width="100">
+                <horizontal pref-width="1"/>
+                <button on-click="back_click" text="&lt;- Back" face-color="red"/>
+                <horizontal pref-width="10"/>
+                
+                <text text="Now Editing:" align="Center"/>
+                <horizontal pref-width="2"/>
+                
+                <horizontal pref-width="32" pref-height="6" spacing="2">
+                    <background id="edit_on_bg" bg="panel-top" bg-color="#00b616" bg-alpha="0.3">
+                        <clickable-text on-click="edit_on_click" text="ON" align="Midline" italics="true" size-delta-x="20"/>
+                    </background>
+                    <background id="edit_off_bg" bg="panel-top" bg-color="#c81717" bg-alpha="0.3">
+                        <clickable-text on-click="edit_off_click" text="OFF" align="Midline" italics="true" size-delta-x="20"/>
+                    </background>
+                </horizontal>
+                <horizontal pref-width="16"/>
+            </horizontal>
+            
+            <settings-container pref-height="60">
+                <vertical vertical-fit="PreferredSize" pref-width="90">
+                    
+                    <!-- Title -->
+                    <horizontal spacing="2">
+                        <vertical pref-width="20" bg="round-rect-panel" bg-alpha="1">
+                            <text text="Override" align="Center"/>
+                        </vertical>
+                        <vertical pref-width="68" bg="round-rect-panel" bg-alpha="1">
+                            <text text="Options" align="Center"/>
+                        </vertical>
+                    </horizontal>
+
+                    <!-- Base Game -->
+                    <horizontal spacing="2">
+                        <vertical pref-width="20"/>
+                        <vertical pref-width="68">
+                            <text text="Base Game" align="Center"/>
+                        </vertical>
+                    </horizontal>
+                    <!-- Environment Effects -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_environment_effects" on-change="on_o_environment_effects_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Environment Effects" align="Left"/>
+                        <dropdown-list-setting value="environment_effects" on-change="on_environment_effects_change" bind-value="true" options="environment_effects_options" text=""/>
+                    </horizontal>
+                    <!-- Expert+ Environment Effects -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_ep_environment_effects" on-change="on_o_ep_environment_effects_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Expert+ Environment Effects" align="Left" font-size="3.2"/>
+                        <dropdown-list-setting value="ep_environment_effects" on-change="on_ep_environment_effects_change" bind-value="true" options="environment_effects_options" text=""/>
+                    </horizontal>
+                    <!-- No Texts&HUDs -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_no_texts_or_huds" on-change="on_o_no_texts_or_huds_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="No Texts&amp;HUDs" align="Left"/>
+                        <toggle-setting value="no_texts_or_huds" on-change="on_no_texts_or_huds_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Advanced HUD -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_advanced_hud" on-change="on_o_advanced_hud_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Advanced HUD" align="Left"/>
+                        <toggle-setting value="advanced_hud" on-change="on_advanced_hud_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Arc Visibility -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_arc_visibility" on-change="on_o_arc_visibility_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Arc Visibility" align="Left"/>
+                        <dropdown-list-setting value="arc_visibility" on-change="on_arc_visibility_change" bind-value="true" options="arc_visibility_options" text=""/>
+                    </horizontal>
+                    <!-- Override Default Environments -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_override_default_environments" on-change="on_o_override_default_environments_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Override Default Environments" align="Left"/>
+                        <toggle-setting value="override_default_environments" on-change="on_override_default_environments_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Override Default Colors -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_override_default_colors" on-change="on_o_override_default_colors_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Override Default Colors" align="Left"/>
+                        <toggle-setting value="override_default_colors" on-change="on_override_default_colors_change" bind-value="true" text=""/>
+                    </horizontal>
+
+                    <!-- Song Core -->
+                    <horizontal spacing="2">
+                        <vertical pref-width="20"/>
+                        <vertical pref-width="68">
+                            <text text="Song Core" align="Center"/>
+                        </vertical>
+                    </horizontal>
+                    <!-- Allow Custom Song Note Colors -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_allow_custom_song_note_colors" on-change="on_o_allow_custom_song_note_colors_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Allow Custom Song Note Colors" align="Left"/>
+                        <toggle-setting value="allow_custom_song_note_colors" on-change="on_allow_custom_song_note_colors_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Allow Custom Song Obstacle Colors -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_allow_custom_song_obstacle_colors" on-change="on_o_allow_custom_song_obstacle_colors_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Allow Custom Song Obstacle Colors" align="Left"/>
+                        <toggle-setting value="allow_custom_song_obstacle_colors" on-change="on_allow_custom_song_obstacle_colors_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Allow Custom Song EnvironmentColors -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_allow_custom_song_environment_colors" on-change="on_o_allow_custom_song_environment_colors_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Allow Custom Song EnvironmentColors" align="Left"/>
+                        <toggle-setting value="allow_custom_song_environment_colors" on-change="on_allow_custom_song_environment_colors_change" bind-value="true" text=""/>
+                    </horizontal>
+
+                    <!-- Chroma -->
+                    <horizontal spacing="2">
+                        <vertical pref-width="20"/>
+                        <vertical pref-width="68">
+                            <text text="Chroma" align="Center"/>
+                        </vertical>
+                    </horizontal>
+                    <!-- Use Custom Environment -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_chroma_use_custom_environment" on-change="on_o_chroma_use_custom_environment_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Use Custom Environment" align="Left"/>
+                        <toggle-setting value="chroma_use_custom_environment" on-change="on_chroma_use_custom_environment_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Disable Environment Enhancements -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_chroma_disable_environment_enhancements" on-change="on_o_chroma_disable_environment_enhancements_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Disable Environment Enhancements" align="Left"/>
+                        <toggle-setting value="chroma_disable_environment_enhancements" on-change="on_chroma_disable_environment_enhancements_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Disable Note Coloring -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_chroma_disable_note_coloring" on-change="on_o_chroma_disable_note_coloring_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Disable Note Coloring" align="Left"/>
+                        <toggle-setting value="chroma_disable_note_coloring" on-change="on_chroma_disable_note_coloring_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Disable Chroma Events -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_chroma_disable_chroma_events" on-change="on_o_chroma_disable_chroma_events_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Disable Chroma Events" align="Left"/>
+                        <toggle-setting value="chroma_disable_chroma_events" on-change="on_chroma_disable_chroma_events_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- Force Zen Mode Walls -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_chroma_force_zen_mode_walls" on-change="on_o_chroma_force_zen_mode_walls_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Force Zen Mode Walls" align="Left"/>
+                        <toggle-setting value="chroma_force_zen_mode_walls" on-change="on_chroma_force_zen_mode_walls_change" bind-value="true" text=""/>
+                    </horizontal>
+
+                    <!-- JDFixer -->
+                    <horizontal spacing="2">
+                        <vertical pref-width="20"/>
+                        <vertical pref-width="68">
+                            <text text="JDFixer" align="Center"/>
+                        </vertical>
+                    </horizontal>
+                    <!-- JDFixer Enabled -->
+                    <horizontal spacing="2">
+                        <toggle-setting value="o_jd_fixer_enabled" on-change="on_o_jd_fixer_enabled_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="JDFixer Enabled" align="Left"/>
+                        <toggle-setting value="jd_fixer_enabled" on-change="on_jd_fixer_enabled_change" bind-value="true" text=""/>
+                    </horizontal>
+                </vertical>
+            </settings-container>
+
+        </vertical>
+        
+    </horizontal>
+    
+    
+    
+    
 </bg>
