@@ -23,6 +23,8 @@
     <DependsOn Include="SiraUtil" Version="^3.1.0"/>
   </ItemGroup>
   
+  <Import Project="OneClickLight.csproj.user" Condition="Exists('OneClickLight.csproj.user')"/>
+
   <PropertyGroup>
     <BSMTProjectType>BSIPA</BSMTProjectType>
     <GenerateManifest>true</GenerateManifest>
