@@ -3,8 +3,8 @@
 
     <vertical active="~main_page_active" vertical-fit="PreferredSize">
         <horizontal horizontal-fit="PreferredSize" vertical-fit="PreferredSize" spacing="1">
-            <button text="On" font-size="10" face-color="#00b616" pref-width="20" pref-height="16"/>
-            <button text="Off" font-size="10" face-color="#c81717" pref-width="20" pref-height="16"/>
+            <button text="On" font-size="10" face-color="#00b616" pref-width="20" pref-height="16" on-click="on_click"/>
+            <button text="Off" font-size="10" face-color="#c81717" pref-width="20" pref-height="16" on-click="off_click"/>
             <vertical horizontal-fit="PreferredSize" vertical-fit="PreferredSize">
                 <horizontal pref-height="8.2"/>
                 <button on-click="edit_config_click" text="Edit Config" pref-width="22"/>

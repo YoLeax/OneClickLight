@@ -22,7 +22,10 @@ internal class AppInstaller : Installer
 
     public override void InstallBindings()
     {
-        // This allows the same instance of PluginConfig to be injected into in any class anywhere in the plugin
+        // This allows the same instance of PluginConfig to be injected into any class anywhere in the plugin
         Container.BindInstance(pluginConfig).AsSingle();
+
+        // SettingsApplier — applies config to game state when ON/OFF is clicked
+        Container.Bind<SettingsApplier>().AsSingle();
     }
 }

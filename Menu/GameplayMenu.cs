@@ -35,7 +35,8 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     public event PropertyChangedEventHandler? PropertyChanged;
     
     private readonly PluginConfig _cfg;
-    
+    private readonly SettingsApplier _settingsApplier;
+
     private EPage _curPage = EPage.Main;
     private EPage CurPage
     {
@@ -96,9 +97,10 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     }
     private PluginConfig.LightConfig CurLightConfig => CurELightConfig == ELightConfig.On ? _cfg.CfgOn : _cfg.CfgOff;
     
-    public GameplayMenu(PluginConfig pluginConfig)
+    public GameplayMenu(PluginConfig pluginConfig, SettingsApplier settingsApplier)
     {
         _cfg = pluginConfig;
+        _settingsApplier = settingsApplier;
     }
     
     public void Initialize()
@@ -117,8 +119,25 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     
     
     
+    #region Main Actions
+
+    [UIAction("on_click")]
+    private void OnClick()
+    {
+        _settingsApplier.ApplyOn();
+    }
+
+    [UIAction("off_click")]
+    private void OffClick()
+    {
+        _settingsApplier.ApplyOff();
+    }
+
+    #endregion
+
+
     #region Pages
-    
+
     [UIValue("main_page_active")] private bool IsMainPageActive => _curPage == EPage.Main;
     [UIValue("edit_config_page_active")] private bool IsEditConfigPageActive => _curPage == EPage.EditConfig;
 
