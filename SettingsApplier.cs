@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using Zenject;
 
 namespace OneClickLight;
 
@@ -8,11 +9,13 @@ internal class SettingsApplier
 {
     private readonly PlayerDataModel _playerDataModel;
     private readonly PluginConfig _pluginConfig;
+    private readonly DiContainer _container;
 
-    public SettingsApplier(PlayerDataModel playerDataModel, PluginConfig pluginConfig)
+    public SettingsApplier(PlayerDataModel playerDataModel, PluginConfig pluginConfig, DiContainer container)
     {
         _playerDataModel = playerDataModel;
         _pluginConfig = pluginConfig;
+        _container = container;
     }
 
     public void ApplyOn() => Apply(_pluginConfig.CfgOn);
@@ -36,13 +39,13 @@ internal class SettingsApplier
         if (cfg.OOverrideDefaultColors && playerData.colorSchemesSettings != null)
             playerData.colorSchemesSettings.overrideDefaultColors = cfg.OverrideDefaultColors;
 
-        // SongCore
-        TrySetModProperty("SongCore", "SongCore.SConfiguration",
-            cfg.OAllowCustomSongNoteColors, cfg.AllowCustomSongNoteColors, "CustomSongNoteColors");
-        TrySetModProperty("SongCore", "SongCore.SConfiguration",
-            cfg.OAllowCustomSongObstacleColors, cfg.AllowCustomSongObstacleColors, "CustomSongObstacleColors");
-        TrySetModProperty("SongCore", "SongCore.SConfiguration",
-            cfg.OAllowCustomSongEnvironmentColors, cfg.AllowCustomSongEnvironmentColors, "CustomSongEnvironmentColors");
+        // ColorTypeOverride (1.40.0+ only)
+        TrySetColorTypeOverride(playerData, cfg);
+
+        // SongCore — config lives in Zenject container
+        TrySetSongCoreSetting(cfg.OAllowCustomSongNoteColors, cfg.AllowCustomSongNoteColors, "CustomSongNoteColors");
+        TrySetSongCoreSetting(cfg.OAllowCustomSongObstacleColors, cfg.AllowCustomSongObstacleColors, "CustomSongObstacleColors");
+        TrySetSongCoreSetting(cfg.OAllowCustomSongEnvironmentColors, cfg.AllowCustomSongEnvironmentColors, "CustomSongEnvironmentColors");
 
         // Chroma
         ApplyChromaSetting(cfg.OChromaDisableChromaEvents, cfg.ChromaDisableChromaEvents, "ChromaEventsDisabledSetting");
@@ -59,22 +62,79 @@ internal class SettingsApplier
         Plugin.Log.Info("Applied " + (cfg == _pluginConfig.CfgOn ? "ON" : "OFF") + " config");
     }
 
+    // ── SongCore (Zenject + assembly scan fallback) ──
+
+    private void TrySetSongCoreSetting(bool shouldOverride, bool value, string propertyName)
+    {
+        if (!shouldOverride) return;
+
+        try
+        {
+            var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == "SongCore");
+            if (assembly == null) return;
+
+            // Try known type names (differs between SongCore versions)
+            foreach (var typeName in new[] { "SongCore.PluginConfig", "SongCore.SConfiguration" })
+            {
+                var configType = assembly.GetType(typeName);
+                if (configType == null) continue;
+
+                // 1.40.x: config lives in Zenject container
+                var instance = _container.TryResolve(configType);
+                // 1.39.x: config exposed via static reference
+                if (instance == null) instance = FindConfigInstance(assembly, configType);
+                if (instance == null) continue;
+
+                if (TrySetAnyMember(instance, configType, propertyName, value))
+                {
+                    var changed = configType.GetMethod("Changed", BindingFlags.Public | BindingFlags.Instance);
+                    changed?.Invoke(instance, null);
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Warn("[SongCore] Failed to set '" + propertyName + "': " + ex.Message);
+        }
+    }
+
+    // ── ColorTypeOverride (1.40.0+) ──
+
+    private static void TrySetColorTypeOverride(PlayerData playerData, PluginConfig.LightConfig cfg)
+    {
+        if (!cfg.OColorTypeOverride || playerData.colorSchemesSettings == null) return;
+
+        try
+        {
+            var prop = playerData.colorSchemesSettings.GetType()
+                .GetProperty("colorOverrideType", BindingFlags.Public | BindingFlags.Instance);
+            if (prop == null) return;
+
+            prop.SetValue(playerData.colorSchemesSettings, Enum.ToObject(prop.PropertyType, cfg.ColorTypeOverride));
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Warn("[BaseGame] Failed to set colorTypeOverride: " + ex.Message);
+        }
+    }
+
+    // ── Base Game helpers ──
+
     private static void TrySetField<T>(object obj, string fieldName, bool shouldOverride, T value)
     {
         if (!shouldOverride) return;
 
         var field = obj.GetType().GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
         if (field != null)
-        {
             field.SetValue(obj, value);
-        }
         else
-        {
             Plugin.Log.Warn("[BaseGame] Field '" + fieldName + "' not found on " + obj.GetType().Name);
-        }
     }
 
-    /// <summary>Set a property/field on an IPA config singleton found via assembly scanning.</summary>
+    // ── Generic mod config helpers ──
+
     private static void TrySetModProperty(
         string assemblyName, string configTypeFullName,
         bool shouldOverride, object value, string propertyName)
@@ -104,7 +164,6 @@ internal class SettingsApplier
         }
     }
 
-    /// <summary>Find config singleton by scanning the entire assembly for static references.</summary>
     private static object? FindConfigInstance(Assembly assembly, Type configType)
     {
         foreach (var p in configType.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
@@ -120,27 +179,12 @@ internal class SettingsApplier
         {
             foreach (var p in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
             {
-                try
-                {
-                    if (configType.IsAssignableFrom(p.PropertyType))
-                    {
-                        var v = p.GetValue(null);
-                        if (v != null) return v;
-                    }
-                }
+                try { if (configType.IsAssignableFrom(p.PropertyType)) { var v = p.GetValue(null); if (v != null) return v; } }
                 catch { }
             }
-
             foreach (var f in type.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static))
             {
-                try
-                {
-                    if (configType.IsAssignableFrom(f.FieldType))
-                    {
-                        var v = f.GetValue(null);
-                        if (v != null) return v;
-                    }
-                }
+                try { if (configType.IsAssignableFrom(f.FieldType)) { var v = f.GetValue(null); if (v != null) return v; } }
                 catch { }
             }
         }
@@ -153,26 +197,16 @@ internal class SettingsApplier
         var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
         var prop = type.GetProperty(name, flags);
-        if (prop != null && prop.CanWrite)
-        {
-            prop.SetValue(instance, value);
-            return true;
-        }
+        if (prop != null && prop.CanWrite) { prop.SetValue(instance, value); return true; }
 
         var field = type.GetField(name, flags);
-        if (field != null)
-        {
-            field.SetValue(instance, value);
-            return true;
-        }
+        if (field != null) { field.SetValue(instance, value); return true; }
 
         return false;
     }
 
-    /// <summary>
-    /// Chroma stores config in static SettableSetting&lt;bool&gt; properties
-    /// on Chroma.Settings.ChromaSettableSettings.
-    /// </summary>
+    // ── Chroma ──
+
     private static void ApplyChromaSetting(bool shouldOverride, bool value, string propertyName)
     {
         if (!shouldOverride) return;
@@ -186,15 +220,13 @@ internal class SettingsApplier
             var settableType = assembly.GetType("Chroma.Settings.ChromaSettableSettings");
             if (settableType == null) return;
 
-            var settingProp = settableType.GetProperty(propertyName,
-                BindingFlags.NonPublic | BindingFlags.Static);
+            var settingProp = settableType.GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Static);
             if (settingProp == null) return;
 
             var settingObj = settingProp.GetValue(null);
             if (settingObj == null) return;
 
-            var valueProp = settingObj.GetType().GetProperty("Value",
-                BindingFlags.Public | BindingFlags.Instance);
+            var valueProp = settingObj.GetType().GetProperty("Value", BindingFlags.Public | BindingFlags.Instance);
             valueProp?.SetValue(settingObj, value);
         }
         catch (Exception ex)

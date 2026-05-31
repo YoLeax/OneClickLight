@@ -36,6 +36,7 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     
     private readonly PluginConfig _cfg;
     private readonly SettingsApplier _settingsApplier;
+    private readonly bool _isVersion40Plus;
 
     private EPage _curPage = EPage.Main;
     private EPage CurPage
@@ -71,7 +72,9 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
             NotifyPropertyChanged(nameof(OverrideDefaultEnvironments));
             NotifyPropertyChanged(nameof(OOverrideDefaultColors));
             NotifyPropertyChanged(nameof(OverrideDefaultColors));
-            
+            NotifyPropertyChanged(nameof(OColorTypeOverride));
+            NotifyPropertyChanged(nameof(ColorTypeOverride));
+
             NotifyPropertyChanged(nameof(OAllowCustomSongNoteColors));
             NotifyPropertyChanged(nameof(AllowCustomSongNoteColors));
             NotifyPropertyChanged(nameof(OAllowCustomSongObstacleColors));
@@ -101,6 +104,9 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     {
         _cfg = pluginConfig;
         _settingsApplier = settingsApplier;
+
+        // ColorTypeOverride only exists in Beat Saber 1.40.0+
+        _isVersion40Plus = typeof(ColorSchemesSettings).GetProperty("colorOverrideType") != null;
     }
     
     public void Initialize()
@@ -284,6 +290,26 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     [UIAction("on_o_override_default_colors_change")] private void OnOOverrideDefaultColorsChange(bool value) => CurLightConfig.OOverrideDefaultColors = value;
     [UIValue("override_default_colors")] private bool OverrideDefaultColors => CurLightConfig.OverrideDefaultColors;
     [UIAction("on_override_default_colors_change")] private void OnOverrideDefaultColorsChange(bool value) => CurLightConfig.OverrideDefaultColors = value;
+
+    // Color Type Override (1.40.0+ only)
+    [UIValue("is_version_40_plus")] private bool IsVersion40Plus => _isVersion40Plus;
+
+    [UIValue("color_type_override_options")] private List<object> ColorTypeOverrideOptions =
+        [ "All", "Notes Only" ];
+    private int ColorTypeOverrideConverter(string value)
+    {
+        if (value == ColorTypeOverrideOptions[1].ToString()) return 1;
+        return 0;
+    }
+    private string ColorTypeOverrideConverter(int value)
+    {
+        return value >= ColorTypeOverrideOptions.Count ? ColorTypeOverrideOptions[0].ToString() : ColorTypeOverrideOptions[value].ToString();
+    }
+
+    [UIValue("o_color_type_override")] private bool OColorTypeOverride => CurLightConfig.OColorTypeOverride;
+    [UIAction("on_o_color_type_override_change")] private void OnOColorTypeOverrideChange(bool value) => CurLightConfig.OColorTypeOverride = value;
+    [UIValue("color_type_override")] private string ColorTypeOverride => ColorTypeOverrideConverter(CurLightConfig.ColorTypeOverride);
+    [UIAction("on_color_type_override_change")] private void OnColorTypeOverrideChange(string value) => CurLightConfig.ColorTypeOverride = ColorTypeOverrideConverter(value);
 
     #endregion
 

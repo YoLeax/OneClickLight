@@ -93,7 +93,11 @@ internal class PluginConfig
 
         public virtual bool OOverrideDefaultColors { get; set; } = true;
         public virtual bool OverrideDefaultColors { get; set; } = false;
-        
+
+        /// <summary>Only available in Beat Saber 1.40.0+. 0=All, 1=NotesOnly.</summary>
+        public virtual bool OColorTypeOverride { get; set; } = false;
+        public virtual int ColorTypeOverride { get; set; } = 0; // 0=All, 1=NotesOnly
+
         // SongCore
         
         public virtual bool OAllowCustomSongNoteColors { get; set; } = true;

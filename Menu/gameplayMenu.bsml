@@ -124,6 +124,12 @@
                         <text text="Override Default Colors" align="Left"/>
                         <toggle-setting value="override_default_colors" on-change="on_override_default_colors_change" bind-value="true" text=""/>
                     </horizontal>
+                    <!-- Color Type Override (1.40.0+ only) -->
+                    <horizontal spacing="2" active="~is_version_40_plus">
+                        <toggle-setting value="o_color_type_override" on-change="on_o_color_type_override_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="Color Type Override" align="Left"/>
+                        <dropdown-list-setting value="color_type_override" on-change="on_color_type_override_change" bind-value="true" options="color_type_override_options" text=""/>
+                    </horizontal>
 
                     <!-- Song Core -->
                     <horizontal spacing="2">
