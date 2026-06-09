@@ -8,20 +8,15 @@ namespace OneClickLight;
 internal class SettingsApplier
 {
     private readonly PlayerDataModel _playerDataModel;
-    private readonly PluginConfig _pluginConfig;
     private readonly DiContainer _container;
 
-    public SettingsApplier(PlayerDataModel playerDataModel, PluginConfig pluginConfig, DiContainer container)
+    public SettingsApplier(PlayerDataModel playerDataModel, DiContainer container)
     {
         _playerDataModel = playerDataModel;
-        _pluginConfig = pluginConfig;
         _container = container;
     }
 
-    public void ApplyOn() => Apply(_pluginConfig.CfgOn);
-    public void ApplyOff() => Apply(_pluginConfig.CfgOff);
-
-    private void Apply(PluginConfig.LightConfig cfg)
+    public void Apply(PluginConfig.LightConfig cfg)
     {
         var playerData = _playerDataModel.playerData;
         var settings = playerData.playerSpecificSettings;
@@ -59,7 +54,7 @@ internal class SettingsApplier
             cfg.OJDFixerEnabled, cfg.JDFixerEnabled, "enabled");
 
         _playerDataModel.Save();
-        Plugin.Log.Info("Applied " + (cfg == _pluginConfig.CfgOn ? "ON" : "OFF") + " config");
+        Plugin.Log.Info("Applied config");
     }
 
     // ── SongCore (Zenject + assembly scan fallback) ──

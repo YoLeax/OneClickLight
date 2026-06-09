@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using UnityEngine;
 using IPA.Config.Stores;
@@ -15,76 +15,120 @@ internal class PluginConfig
 
     public virtual bool NotInitialized { get; set; } = true;
 
-    public virtual LightConfig CfgOn { get; set; } = new LightConfig();
-    public virtual LightConfig CfgOff { get; set; } = new LightConfig();
-    
-    // Members must be 'virtual' if you want BSIPA to detect a value change and save the config automatically
-    // You can assign a default value to be used when the config is first created by assigning one after '=' 
-    // examples:
-    // public virtual bool FeatureEnabled { get; set; } = true;
-    // public virtual int NumValue { get; set; } = 42;
-    // public virtual Color TheColor { get; set; } = new Color(0.12f, 0.34f, 0.56f);
+    // Deprecated: kept for BSIPA deserialization compatibility with old config files
+    public virtual LightConfig? CfgOn { get; set; }
+    public virtual LightConfig? CfgOff { get; set; }
 
-    /*
-    /// <summary>
-    /// This is called whenever BSIPA reads the config from disk (including when file changes are detected).
-    /// </summary>
-    public virtual void OnReload() { }
-    */
+    [UseConverter(typeof(ListConverter<LightConfig>))]
+    [NonNullable]
+    public virtual List<LightConfig> Slots { get; set; } = new();
 
-    /// <summary>
-    /// Call this to force BSIPA to update the config file. This is also called by BSIPA if it detects the file was modified.
-    /// </summary>
     public virtual void Changed() { }
 
-    /*
-    /// <summary>
-    /// Call this to have BSIPA copy the values from <paramref name="other"/> into this config.
-    /// </summary>
-    public virtual void CopyFrom(PluginConfig other) { }
-    */
+    internal int SlotCount => Slots.Count;
+
+    internal LightConfig GetSlot(int index) =>
+        index >= 0 && index < Slots.Count ? Slots[index] : new LightConfig();
+
+    internal void SetSlotName(int index, string name)
+    {
+        if (index >= 0 && index < Slots.Count) Slots[index].Name = name;
+    }
+
+    internal void AddSlot(string name, LightConfig config)
+    {
+        Slots.Add(config);
+        Slots[Slots.Count - 1].Name = name;
+    }
+
+    internal void RemoveSlot(int index)
+    {
+        if (index >= 0 && index < Slots.Count) Slots.RemoveAt(index);
+    }
+
+    internal void SwapSlots(int indexA, int indexB)
+    {
+        if (indexA < 0 || indexA >= Slots.Count || indexB < 0 || indexB >= Slots.Count) return;
+        (Slots[indexA], Slots[indexB]) = (Slots[indexB], Slots[indexA]);
+    }
 
     internal void Init()
     {
-        if (NotInitialized)
+        if (NotInitialized || Slots.Count == 0)
         {
-            CfgOff.EnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects;
-            CfgOff.EpEnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects;
-            CfgOff.NoTextsOrHUDs = false;
-            CfgOff.AdvancedHUD = true;
-            CfgOff.OverrideDefaultEnvironments = true;
-            CfgOff.OverrideDefaultColors = true;
-
-            CfgOff.AllowCustomSongNoteColors = false;
-            CfgOff.AllowCustomSongObstacleColors = false;
-            CfgOff.AllowCustomSongEnvironmentColors = false;
-
-            CfgOff.ChromaDisableEnvironmentEnhancements = true;
-            CfgOff.ChromaDisableNoteColoring = true;
-            CfgOff.ChromaDisableChromaEvents = true;
-
+            Slots = new List<LightConfig>
+            {
+                LightConfig.CreateDefault("ON"),
+                LightConfig.CreateDefault("OFF"),
+                LightConfig.CreateDefault("Half-ON"),
+            };
             NotInitialized = false;
         }
     }
 
     public class LightConfig
     {
+        // ── Factory ──
+
+        public static LightConfig CreateDefault(string name) => new LightConfig { Name = name };
+
+        public static LightConfig CreateDefaultOff()
+        {
+            return new LightConfig
+            {
+                Name = "OFF",
+                EnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects,
+                EpEnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects,
+                NoTextsOrHUDs = false,
+                AdvancedHUD = true,
+                OverrideDefaultEnvironments = true,
+                OverrideDefaultColors = true,
+                AllowCustomSongNoteColors = false,
+                AllowCustomSongObstacleColors = false,
+                AllowCustomSongEnvironmentColors = false,
+                ChromaDisableEnvironmentEnhancements = true,
+                ChromaDisableNoteColoring = true,
+                ChromaDisableChromaEvents = true,
+            };
+        }
+
+        public static LightConfig CreateDefaultHalfOn()
+        {
+            return new LightConfig
+            {
+                Name = "Half-ON",
+                OEnvironmentEffects = false,
+                OEpEnvironmentEffects = false,
+                ONoTextsOrHUDs = false,
+                OAdvancedHUD = false,
+                OOverrideDefaultEnvironments = false,
+                OOverrideDefaultColors = false,
+                ChromaDisableEnvironmentEnhancements = true,
+                ChromaDisableNoteColoring = true,
+                ChromaDisableChromaEvents = true,
+            };
+        }
+
+        // Identity
+
+        public virtual string Name { get; set; } = "";
+
         // BaseGame
 
         public virtual bool OEnvironmentEffects { get; set; } = true;
         public virtual EnvironmentEffectsFilterPreset EnvironmentEffects { get; set; } =
             EnvironmentEffectsFilterPreset.AllEffects;
-        
+
         public virtual bool OEpEnvironmentEffects { get; set; } = true;
         public virtual EnvironmentEffectsFilterPreset EpEnvironmentEffects { get; set; } =
             EnvironmentEffectsFilterPreset.AllEffects;
-        
+
         public virtual bool ONoTextsOrHUDs { get; set; } = true;
         public virtual bool NoTextsOrHUDs { get; set; } = true;
-        
+
         public virtual bool OAdvancedHUD { get; set; } = true;
         public virtual bool AdvancedHUD { get; set; } = false;
-        
+
         public virtual bool OArcVisibility { get; set; } = false;
         public virtual ArcVisibilityType ArcVisibility { get; set; } = ArcVisibilityType.Standard;
 
@@ -99,16 +143,16 @@ internal class PluginConfig
         public virtual int ColorTypeOverride { get; set; } = 0; // 0=All, 1=NotesOnly
 
         // SongCore
-        
+
         public virtual bool OAllowCustomSongNoteColors { get; set; } = true;
         public virtual bool AllowCustomSongNoteColors { get; set; } = true;
-        
+
         public virtual bool OAllowCustomSongObstacleColors { get; set; } = true;
         public virtual bool AllowCustomSongObstacleColors { get; set; } = true;
-        
+
         public virtual bool OAllowCustomSongEnvironmentColors { get; set; } = true;
         public virtual bool AllowCustomSongEnvironmentColors { get; set; } = true;
-        
+
         // Chroma
 
         public virtual bool OChromaUseCustomEnvironment { get; set; } = false;
@@ -116,18 +160,18 @@ internal class PluginConfig
 
         public virtual bool OChromaDisableEnvironmentEnhancements { get; set; } = true;
         public virtual bool ChromaDisableEnvironmentEnhancements { get; set; } = false;
-        
+
         public virtual bool OChromaDisableNoteColoring { get; set; } = true;
         public virtual bool ChromaDisableNoteColoring { get; set; } = false;
-        
+
         public virtual bool OChromaDisableChromaEvents { get; set; } = true;
         public virtual bool ChromaDisableChromaEvents { get; set; } = false;
-        
+
         public virtual bool OChromaForceZenModeWalls { get; set; } = false;
         public virtual bool ChromaForceZenModeWalls { get; set; } = false;
-        
+
         // JDFixer
-        
+
         public virtual bool OJDFixerEnabled { get; set; } = false;
         public virtual bool JDFixerEnabled { get; set; } = false;
     }

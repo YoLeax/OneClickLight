@@ -1,70 +1,36 @@
 <bg xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
     xsi:noNamespaceSchemaLocation='https://monkeymanboy.github.io/BSML-Docs/BSMLSchema.xsd'>
 
+    <!-- Main Page: dynamic config slot buttons -->
     <vertical active="~main_page_active" vertical-fit="PreferredSize">
-        <horizontal horizontal-fit="PreferredSize" vertical-fit="PreferredSize" spacing="1">
-            <button text="On" font-size="10" face-color="#00b616" pref-width="20" pref-height="16" on-click="on_click"/>
-            <button text="Off" font-size="10" face-color="#c81717" pref-width="20" pref-height="16" on-click="off_click"/>
-            <vertical horizontal-fit="PreferredSize" vertical-fit="PreferredSize">
-                <horizontal pref-height="8.2"/>
-                <button on-click="edit_config_click" text="Edit Config" pref-width="22"/>
-            </vertical>
-        </horizontal>
-        <horizontal pref-height="40"/>
+        <horizontal pref-height="5"/>
+        <button on-click="edit_config_click" text="Edit Config" pref-width="22"/>
+        <horizontal pref-height="5"/>
     </vertical>
-    
+
+    <!-- Edit Config Page: dropdown + name + options -->
     <horizontal active="~edit_config_page_active" vertical-fit="PreferredSize" pref-width="110">
         <vertical pref-width="10"/>
         <vertical vertical-fit="PreferredSize" pref-width="100" child-alignment="UpperLeft">
-            
-            <!--
-            <horizontal>
-                
-                <vertical vertical-fit="PreferredSize" pref-width="90">
-                    <horizontal spacing="2">
-                        <horizontal pref-width="20" child-alignment="MiddleRight">
-                            <button on-click="back_click" text="&lt;- Back" face-color="red" pref-width="16"/>
-                        </horizontal>
-                        <horizontal pref-width="68" child-alignment="MiddleCenter" spacing="2">
-                            <vertical pref-width="20" child-expand-width="true" bg="round-rect-panel" bg-alpha="1">
-                                <text text="Now Editing:" align="Center"/>
-                            </vertical>
-                            <background id="edit_on_bg" bg="panel-top" bg-color="#00b616" bg-alpha="0.3">
-                                <clickable-text on-click="edit_on_click" text="ON" align="Midline" italics="true" size-delta-x="20"/>
-                            </background>
-                            <background id="edit_off_bg" bg="panel-top" bg-color="#c81717" bg-alpha="0.3">
-                                <clickable-text on-click="edit_off_click" text="OFF" align="Midline" italics="true" size-delta-x="20"/>
-                            </background>
-                        </horizontal>
-                    </horizontal>
-                </vertical>
-                
-                <vertical pref-width="10"/>
-            </horizontal>
-            -->
 
-            <horizontal pref-width="100">
-                <horizontal pref-width="1"/>
+            <!-- Header: Back + Config selector + New/Delete/Rename -->
+            <horizontal pref-width="100" spacing="2">
                 <button on-click="back_click" text="&lt;- Back" face-color="red"/>
-                <horizontal pref-width="10"/>
-                
-                <text text="Now Editing:" align="Center"/>
-                <horizontal pref-width="2"/>
-                
-                <horizontal pref-width="32" pref-height="6" spacing="2">
-                    <background id="edit_on_bg" bg="panel-top" bg-color="#00b616" bg-alpha="0.3">
-                        <clickable-text on-click="edit_on_click" text="ON" align="Midline" italics="true" size-delta-x="20"/>
-                    </background>
-                    <background id="edit_off_bg" bg="panel-top" bg-color="#c81717" bg-alpha="0.3">
-                        <clickable-text on-click="edit_off_click" text="OFF" align="Midline" italics="true" size-delta-x="20"/>
-                    </background>
+                <horizontal pref-width="1"/>
+                <dropdown-list-setting id="config_dropdown" value="cur_config_index" on-change="on_config_dropdown_change" options="config_options" text="Cfg:" pref-width="42"/>
+                <horizontal pref-width="32" spacing="0">
+                    <button on-click="move_config_up" text="▲" pref-width="6" pref-height="8" hover-hint="Move up"/>
+                    <button on-click="move_config_down" text="▼" pref-width="6" pref-height="8" hover-hint="Move down"/>
+                    <button on-click="show_name_keyboard" text="/" pref-width="6" pref-height="8" hover-hint="Rename"/>
+                    <button on-click="new_config_click" text="+" pref-width="6" pref-height="8" face-color="#00b616" hover-hint="New"/>
+                    <button on-click="delete_config_click" text="~delete_button_text" pref-width="6" pref-height="8" face-color="#c81717" hover-hint="Delete"/>
                 </horizontal>
-                <horizontal pref-width="16"/>
             </horizontal>
-            
+            <modal-keyboard id="name_keyboard" value="cur_config_name" show-event="show_name_keyboard" on-enter="on_name_entered"/>
+
             <settings-container pref-height="60">
                 <vertical vertical-fit="PreferredSize" pref-width="90">
-                    
+
                     <!-- Title -->
                     <horizontal spacing="2">
                         <vertical pref-width="20" bg="round-rect-panel" bg-alpha="1">
@@ -212,10 +178,6 @@
             </settings-container>
 
         </vertical>
-        
     </horizontal>
-    
-    
-    
-    
+
 </bg>

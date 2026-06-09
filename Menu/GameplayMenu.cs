@@ -3,21 +3,34 @@ using System.Collections.Generic;
 using System.Linq;
 using System.ComponentModel;
 using UnityEngine;
-using HMUI;
+using UnityEngine.UI;
+using BeatSaberMarkupLanguage;
+using BeatSaberMarkupLanguage.Components;
+using BeatSaberMarkupLanguage.Components.Settings;
 using BeatSaberMarkupLanguage.GameplaySetup;
 using BeatSaberMarkupLanguage.Attributes;
+using BeatSaberMarkupLanguage.Parser;
 using IPA.Logging;
 using ModestTree;
 using Zenject;
 
 namespace OneClickLight.Menu;
 
-internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChanged
+internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPropertyChanged
 {
     private const string MenuName = "One Click Light";
     private const string ResourcePath = "OneClickLight.Menu.gameplayMenu.bsml";
-    private const float DefaultAlpha = 0.4f;
-    private const float SelectedAlpha = 1.0f;
+    private const int MaxButtonsPerRow = 3;
+    private const float ButtonHeight = 10f;
+    private const float ButtonSpacing = 3f;
+    private const float RowSpacing = 1f;
+    private const float ContainerPaddingH = 4f;
+    private const float ContainerPaddingV = 6f;
+    private const int ButtonFontSize = 7;
+
+    private const float DeleteConfirmWaitSeconds = 2.0f;
+
+    private enum ConfirmState { Default, StartConfirming, Confirming }
 
     private enum EPage
     {
@@ -25,18 +38,24 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
         EditConfig,
     }
 
-    private enum ELightConfig
+    // Simple host for BSMLParser action resolution
+    private class ButtonActionHost
     {
-        None,
-        On,
-        Off,
+        private readonly Action _action;
+        public ButtonActionHost(Action action) => _action = action;
+
+        [UIAction("on_slot_click")]
+        private void OnSlotClick() => _action();
     }
-    
+
     public event PropertyChangedEventHandler? PropertyChanged;
-    
+
     private readonly PluginConfig _cfg;
     private readonly SettingsApplier _settingsApplier;
     private readonly bool _isVersion40Plus;
+
+    private ConfirmState _deleteState = ConfirmState.Default;
+    private float _deleteWaitUntil = 0f;
 
     private EPage _curPage = EPage.Main;
     private EPage CurPage
@@ -50,65 +69,34 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
         }
     }
 
-    private ELightConfig _curELightConfig = ELightConfig.None;
-    private ELightConfig CurELightConfig
+    private int _curConfigIndex;
+    private int CurConfigIndex
     {
-        get => _curELightConfig;
+        get => _curConfigIndex;
         set
         {
-            _curELightConfig = value;
-            
-            NotifyPropertyChanged(nameof(OEnvironmentEffects));
-            NotifyPropertyChanged(nameof(EnvironmentEffects));
-            NotifyPropertyChanged(nameof(OEpEnvironmentEffects));
-            NotifyPropertyChanged(nameof(EpEnvironmentEffects));
-            NotifyPropertyChanged(nameof(ONoTextsOrHUDs));
-            NotifyPropertyChanged(nameof(NoTextsOrHUDs));
-            NotifyPropertyChanged(nameof(OAdvancedHUD));
-            NotifyPropertyChanged(nameof(AdvancedHUD));
-            NotifyPropertyChanged(nameof(OArcVisibility));
-            NotifyPropertyChanged(nameof(ArcVisibility));
-            NotifyPropertyChanged(nameof(OOverrideDefaultEnvironments));
-            NotifyPropertyChanged(nameof(OverrideDefaultEnvironments));
-            NotifyPropertyChanged(nameof(OOverrideDefaultColors));
-            NotifyPropertyChanged(nameof(OverrideDefaultColors));
-            NotifyPropertyChanged(nameof(OColorTypeOverride));
-            NotifyPropertyChanged(nameof(ColorTypeOverride));
-
-            NotifyPropertyChanged(nameof(OAllowCustomSongNoteColors));
-            NotifyPropertyChanged(nameof(AllowCustomSongNoteColors));
-            NotifyPropertyChanged(nameof(OAllowCustomSongObstacleColors));
-            NotifyPropertyChanged(nameof(AllowCustomSongObstacleColors));
-            NotifyPropertyChanged(nameof(OAllowCustomSongEnvironmentColors));
-            NotifyPropertyChanged(nameof(AllowCustomSongEnvironmentColors));
-            
-            NotifyPropertyChanged(nameof(OChromaUseCustomEnvironment));
-            NotifyPropertyChanged(nameof(ChromaUseCustomEnvironment));
-            NotifyPropertyChanged(nameof(OChromaDisableEnvironmentEnhancements));
-            NotifyPropertyChanged(nameof(ChromaDisableEnvironmentEnhancements));
-            NotifyPropertyChanged(nameof(OChromaDisableNoteColoring));
-            NotifyPropertyChanged(nameof(ChromaDisableNoteColoring));
-            NotifyPropertyChanged(nameof(OChromaDisableChromaEvents));
-            NotifyPropertyChanged(nameof(ChromaDisableChromaEvents));
-            NotifyPropertyChanged(nameof(OChromaForceZenModeWalls));
-            NotifyPropertyChanged(nameof(ChromaForceZenModeWalls));
-
-            NotifyPropertyChanged(nameof(OJDFixerEnabled));
-            NotifyPropertyChanged(nameof(JDFixerEnabled));
-
+            _curConfigIndex = value;
+            NotifyPropertyChanged(nameof(CurConfigName));
+            NotifyAllConfigValues();
+            UpdateActionButtons();
         }
     }
-    private PluginConfig.LightConfig CurLightConfig => CurELightConfig == ELightConfig.On ? _cfg.CfgOn : _cfg.CfgOff;
-    
+
+    private PluginConfig.LightConfig CurLightConfig => _cfg.GetSlot(_curConfigIndex);
+
+    // BSML references
+    [UIComponent("config_dropdown")] private readonly DropDownListSetting _configDropdown = null!;
+
+    private Transform? _contentTransform;
+    private ModalKeyboard? _nameKeyboard;
+
     public GameplayMenu(PluginConfig pluginConfig, SettingsApplier settingsApplier)
     {
         _cfg = pluginConfig;
         _settingsApplier = settingsApplier;
-
-        // ColorTypeOverride only exists in Beat Saber 1.40.0+
         _isVersion40Plus = typeof(ColorSchemesSettings).GetProperty("colorOverrideType") != null;
     }
-    
+
     public void Initialize()
     {
         GameplaySetup.Instance.AddTab(MenuName, ResourcePath, this);
@@ -122,21 +110,149 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
             GameplaySetup.Instance.RemoveTab(MenuName);
         }
     }
-    
-    
-    
-    #region Main Actions
 
-    [UIAction("on_click")]
-    private void OnClick()
+    public void Tick()
     {
-        _settingsApplier.ApplyOn();
+        if (_deleteState == ConfirmState.StartConfirming)
+        {
+            _deleteWaitUntil = Time.time + DeleteConfirmWaitSeconds;
+            _deleteState = ConfirmState.Confirming;
+            NotifyPropertyChanged(nameof(DeleteButtonText));
+        }
+        else if (_deleteState == ConfirmState.Confirming)
+        {
+            if (Time.time > _deleteWaitUntil)
+            {
+                _deleteState = ConfirmState.Default;
+                NotifyPropertyChanged(nameof(DeleteButtonText));
+            }
+        }
     }
 
-    [UIAction("off_click")]
-    private void OffClick()
+    [UIValue("delete_button_text")]
+    private string DeleteButtonText => _deleteState == ConfirmState.Default ? "-" : "?";
+
+
+    #region Post-Parse
+
+    [UIAction("#post-parse")]
+    private void PostParse()
     {
-        _settingsApplier.ApplyOff();
+        // Find the "Edit Config" button by searching for its text
+        Button? editConfigBtn = null;
+        foreach (var btn in Resources.FindObjectsOfTypeAll<Button>())
+        {
+            var tmp = btn.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (tmp != null && tmp.text == "Edit Config")
+            {
+                editConfigBtn = btn;
+                break;
+            }
+        }
+        if (editConfigBtn == null) return;
+
+        // The main page vertical is the direct parent of the Edit Config button
+        var mainPageVertical = editConfigBtn.transform.parent;
+        if (mainPageVertical == null) return;
+
+        // Create content container and insert before the Edit Config button
+        var containerGO = new GameObject("ConfigSlotsContainer");
+        containerGO.AddComponent<RectTransform>();
+        containerGO.transform.SetParent(mainPageVertical, false);
+        containerGO.transform.SetSiblingIndex(1); // After top spacer, before Edit Config
+
+        _contentTransform = containerGO.transform;
+
+        // VerticalLayoutGroup to size rows
+        var vlg = containerGO.AddComponent<VerticalLayoutGroup>();
+        vlg.spacing = RowSpacing;
+        vlg.childAlignment = TextAnchor.UpperCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = true;
+        vlg.childForceExpandWidth = true;
+        vlg.childForceExpandHeight = false;
+        vlg.padding = new RectOffset((int)ContainerPaddingH, (int)ContainerPaddingH, (int)ContainerPaddingV, (int)ContainerPaddingV);
+
+        // Size container to fit content
+        var slotCount = _cfg.SlotCount;
+        var rowCount = (slotCount + MaxButtonsPerRow - 1) / MaxButtonsPerRow;
+        var containerHeight = rowCount * ButtonHeight + (rowCount - 1) * RowSpacing;
+
+        var containerRT = containerGO.GetComponent<RectTransform>();
+        containerRT.anchorMin = new Vector2(0.5f, 1f);
+        containerRT.anchorMax = new Vector2(0.5f, 1f);
+        containerRT.pivot = new Vector2(0.5f, 1f);
+        containerRT.sizeDelta = new Vector2(96f, containerHeight);
+
+        RebuildMainPageButtons();
+
+        // Find modal keyboard
+        foreach (var mk in Resources.FindObjectsOfTypeAll<ModalKeyboard>())
+        {
+            _nameKeyboard = mk;
+            break;
+        }
+    }
+
+    #endregion
+
+
+    #region Main Page — Dynamic Buttons
+
+    private void RebuildMainPageButtons()
+    {
+        if (_contentTransform == null) return;
+
+        // Update container height
+        var slotCount = _cfg.SlotCount;
+        var rowCount = (slotCount + MaxButtonsPerRow - 1) / MaxButtonsPerRow;
+        var containerHeight = rowCount * ButtonHeight + (rowCount - 1) * RowSpacing;
+        var rt = _contentTransform.GetComponent<RectTransform>();
+        if (rt != null) rt.sizeDelta = new Vector2(rt.sizeDelta.x, containerHeight);
+
+        // Destroy existing children
+        foreach (Transform child in _contentTransform)
+            UnityEngine.Object.Destroy(child.gameObject);
+
+        // Create rows with HorizontalLayoutGroup
+        HorizontalLayoutGroup? currentRow = null;
+
+        for (int i = 0; i < _cfg.SlotCount; i++)
+        {
+            if (i % MaxButtonsPerRow == 0)
+            {
+                var rowGO = new GameObject("Row");
+                rowGO.transform.SetParent(_contentTransform, false);
+                rowGO.AddComponent<RectTransform>();
+
+                currentRow = rowGO.AddComponent<HorizontalLayoutGroup>();
+                currentRow.spacing = ButtonSpacing;
+                currentRow.childAlignment = TextAnchor.MiddleCenter;
+                currentRow.childControlWidth = false;
+                currentRow.childControlHeight = false;
+                currentRow.childForceExpandWidth = false;
+                currentRow.childForceExpandHeight = false;
+            }
+
+            CreateConfigButton(_cfg.GetSlot(i).Name, i, currentRow!.transform);
+        }
+    }
+
+    private void CreateConfigButton(string name, int index, Transform parent)
+    {
+        // BSML markup for a styled button
+        var markup = $"<button text=\"{name}\" font-size=\"{ButtonFontSize}\" pref-height=\"{ButtonHeight}\" on-click=\"on_slot_click\"/>";
+
+        var host = new ButtonActionHost(() => OnConfigSlotClick(index));
+        var parserParams = BSMLParser.Instance.Parse(markup, parent.gameObject, host);
+        if (parserParams == null) return;
+
+    }
+
+    private void OnConfigSlotClick(int index)
+    {
+        if (index < 0 || index >= _cfg.SlotCount) return;
+        _settingsApplier.Apply(_cfg.GetSlot(index));
     }
 
     #endregion
@@ -151,48 +267,161 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
     private void EditConfig_Click()
     {
         CurPage = EPage.EditConfig;
-        if (CurELightConfig == ELightConfig.None) OnSelectionClick(ELightConfig.On);
+        RefreshDropdown();
+        UpdateActionButtons();
     }
+
     [UIAction("back_click")]
     private void Back_Click()
     {
         CurPage = EPage.Main;
+        RebuildMainPageButtons();
     }
-    
+
     #endregion
 
-    
-    
-	#region Config Selection
-    
-    [UIComponent("edit_on_bg")] private readonly ImageView EditOn_BG = null!;
-    [UIComponent("edit_off_bg")] private readonly ImageView EditOff_BG = null!;
-    
-    [UIAction("edit_on_click")] private void EditOn_Click() => OnSelectionClick(ELightConfig.On);
-    [UIAction("edit_off_click")] private void EditOff_Click() => OnSelectionClick(ELightConfig.Off);
-    private void OnSelectionClick(ELightConfig lightConfig)
+
+    #region Config Management
+
+    [UIValue("config_options")]
+    private List<object> ConfigOptions =>
+        _cfg.Slots.Select(s => (object)s.Name).ToList();
+
+    [UIValue("cur_config_index")]
+    private int CurConfigDropdownIndex
     {
-        if (lightConfig == CurELightConfig) return;
-        else
+        get => _curConfigIndex;
+        set
         {
-            Select(CurELightConfig, false);
-            Select(lightConfig, true);
-            CurELightConfig = lightConfig;
+            if (value >= 0 && value < _cfg.SlotCount)
+                CurConfigIndex = value;
         }
     }
-    private void Select(ELightConfig lightConfig, bool isSelect)
-    {
-        if (lightConfig == ELightConfig.None) return;
-        ImageView? iv = lightConfig == ELightConfig.On ? EditOn_BG : EditOff_BG;
-        if (iv == null) return;
 
-        Color c = iv.color;
-        c.a = isSelect ? SelectedAlpha : DefaultAlpha;
-        iv.color = c;
+    [UIAction("on_config_dropdown_change")]
+    private void OnConfigDropdownChange(string value)
+    {
+        var index = _cfg.Slots.FindIndex(s => s.Name == value);
+        if (index >= 0) CurConfigDropdownIndex = index;
     }
 
-	#endregion
+    [UIValue("cur_config_name")]
+    private string CurConfigName
+    {
+        get => _cfg.GetSlot(_curConfigIndex).Name;
+        set
+        {
+            _cfg.SetSlotName(_curConfigIndex, value);
+            RefreshDropdown();
+        }
+    }
 
+    [UIAction("show_name_keyboard")]
+    private void ShowNameKeyboard()
+    {
+        _nameKeyboard?.ModalView?.Show(true);
+    }
+
+    [UIAction("on_name_entered")]
+    private void OnNameEntered(string value)
+    {
+        _cfg.SetSlotName(_curConfigIndex, value);
+        RefreshDropdown();
+        NotifyPropertyChanged(nameof(CurConfigName));
+    }
+
+    [UIAction("new_config_click")]
+    private void NewConfig_Click()
+    {
+        _cfg.AddSlot($"Config {_cfg.SlotCount + 1}", PluginConfig.LightConfig.CreateDefault($"Config {_cfg.SlotCount + 1}"));
+        _cfg.Changed();
+
+        CurConfigIndex = _cfg.SlotCount - 1;
+        RebuildMainPageButtons();
+        RefreshDropdown();
+        UpdateActionButtons();
+    }
+
+    [UIAction("delete_config_click")]
+    private void DeleteConfigClick()
+    {
+        if (_cfg.SlotCount <= 1) return;
+
+        if (_deleteState == ConfirmState.Default)
+        {
+            _deleteState = ConfirmState.StartConfirming;
+        }
+        else
+        {
+            _deleteState = ConfirmState.Default;
+            NotifyPropertyChanged(nameof(DeleteButtonText));
+            _cfg.RemoveSlot(_curConfigIndex);
+            _cfg.Changed();
+
+            CurConfigIndex = Math.Min(_curConfigIndex, _cfg.SlotCount - 1);
+            RebuildMainPageButtons();
+            RefreshDropdown();
+            UpdateActionButtons();
+        }
+    }
+
+    [UIAction("move_config_up")]
+    private void MoveConfigUp()
+    {
+        if (_curConfigIndex <= 0) return;
+        _cfg.SwapSlots(_curConfigIndex, _curConfigIndex - 1);
+        _cfg.Changed();
+
+        CurConfigIndex = _curConfigIndex - 1;
+        RebuildMainPageButtons();
+        RefreshDropdown();
+        UpdateActionButtons();
+    }
+
+    [UIAction("move_config_down")]
+    private void MoveConfigDown()
+    {
+        if (_curConfigIndex >= _cfg.SlotCount - 1) return;
+        _cfg.SwapSlots(_curConfigIndex, _curConfigIndex + 1);
+        _cfg.Changed();
+
+        CurConfigIndex = _curConfigIndex + 1;
+        RebuildMainPageButtons();
+        RefreshDropdown();
+        UpdateActionButtons();
+    }
+
+    private void UpdateActionButtons()
+    {
+        bool canMoveUp = _curConfigIndex > 0;
+        bool canMoveDown = _curConfigIndex < _cfg.SlotCount - 1;
+        bool canDelete = _cfg.SlotCount > 1;
+
+        foreach (var btn in Resources.FindObjectsOfTypeAll<Button>())
+        {
+            var tmp = btn.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (tmp == null) continue;
+
+            switch (tmp.text)
+            {
+                case "▲": btn.interactable = canMoveUp; break;
+                case "▼": btn.interactable = canMoveDown; break;
+                case "-": case "?": btn.interactable = canDelete; break;
+            }
+        }
+    }
+
+    private void RefreshDropdown()
+    {
+        if (_configDropdown == null) return;
+
+        _configDropdown.Values = ConfigOptions;
+        _configDropdown.UpdateChoices();
+        if (_curConfigIndex >= 0 && _curConfigIndex < _cfg.SlotCount)
+            _configDropdown.Value = _cfg.GetSlot(_curConfigIndex).Name;
+    }
+
+    #endregion
 
 
     #region Options
@@ -222,7 +451,7 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
                 return EnvironmentEffectsOptions[2].ToString();
         }
     }
-    
+
     // Environment Effects
     [UIValue("o_environment_effects")] private bool OEnvironmentEffects => CurLightConfig.OEnvironmentEffects;
     [UIAction("on_o_environment_effects_change")] private void OnOEnvironmentEffectsChange(bool value) => CurLightConfig.OEnvironmentEffects = value;
@@ -272,7 +501,7 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
                 return ArcVisibilityOptions[3].ToString();
         }
     }
-    
+
     // Arc Visibility
     [UIValue("o_arc_visibility")] private bool OArcVisibility => CurLightConfig.OArcVisibility;
     [UIAction("on_o_arc_visibility_change")] private void OnOArcVisibilityChange(bool value) => CurLightConfig.OArcVisibility = value;
@@ -382,11 +611,51 @@ internal class GameplayMenu : IInitializable, IDisposable, INotifyPropertyChange
 
     #endregion
 
-    
-    #endregion
-    
 
-    
+    #endregion
+
+
+    private void NotifyAllConfigValues()
+    {
+        NotifyPropertyChanged(nameof(OEnvironmentEffects));
+        NotifyPropertyChanged(nameof(EnvironmentEffects));
+        NotifyPropertyChanged(nameof(OEpEnvironmentEffects));
+        NotifyPropertyChanged(nameof(EpEnvironmentEffects));
+        NotifyPropertyChanged(nameof(ONoTextsOrHUDs));
+        NotifyPropertyChanged(nameof(NoTextsOrHUDs));
+        NotifyPropertyChanged(nameof(OAdvancedHUD));
+        NotifyPropertyChanged(nameof(AdvancedHUD));
+        NotifyPropertyChanged(nameof(OArcVisibility));
+        NotifyPropertyChanged(nameof(ArcVisibility));
+        NotifyPropertyChanged(nameof(OOverrideDefaultEnvironments));
+        NotifyPropertyChanged(nameof(OverrideDefaultEnvironments));
+        NotifyPropertyChanged(nameof(OOverrideDefaultColors));
+        NotifyPropertyChanged(nameof(OverrideDefaultColors));
+        NotifyPropertyChanged(nameof(OColorTypeOverride));
+        NotifyPropertyChanged(nameof(ColorTypeOverride));
+
+        NotifyPropertyChanged(nameof(OAllowCustomSongNoteColors));
+        NotifyPropertyChanged(nameof(AllowCustomSongNoteColors));
+        NotifyPropertyChanged(nameof(OAllowCustomSongObstacleColors));
+        NotifyPropertyChanged(nameof(AllowCustomSongObstacleColors));
+        NotifyPropertyChanged(nameof(OAllowCustomSongEnvironmentColors));
+        NotifyPropertyChanged(nameof(AllowCustomSongEnvironmentColors));
+
+        NotifyPropertyChanged(nameof(OChromaUseCustomEnvironment));
+        NotifyPropertyChanged(nameof(ChromaUseCustomEnvironment));
+        NotifyPropertyChanged(nameof(OChromaDisableEnvironmentEnhancements));
+        NotifyPropertyChanged(nameof(ChromaDisableEnvironmentEnhancements));
+        NotifyPropertyChanged(nameof(OChromaDisableNoteColoring));
+        NotifyPropertyChanged(nameof(ChromaDisableNoteColoring));
+        NotifyPropertyChanged(nameof(OChromaDisableChromaEvents));
+        NotifyPropertyChanged(nameof(ChromaDisableChromaEvents));
+        NotifyPropertyChanged(nameof(OChromaForceZenModeWalls));
+        NotifyPropertyChanged(nameof(ChromaForceZenModeWalls));
+
+        NotifyPropertyChanged(nameof(OJDFixerEnabled));
+        NotifyPropertyChanged(nameof(JDFixerEnabled));
+    }
+
     private void NotifyPropertyChanged(string name)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
