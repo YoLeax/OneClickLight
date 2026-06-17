@@ -16,17 +16,18 @@
             <!-- Header: Back + Config selector + New/Delete/Rename -->
             <horizontal pref-width="100" spacing="2">
                 <button on-click="back_click" text="&lt;- Back" face-color="red"/>
-                <horizontal pref-width="1"/>
                 <dropdown-list-setting id="config_dropdown" value="cur_config_index" on-change="on_config_dropdown_change" options="config_options" text="Cfg:" pref-width="42"/>
-                <horizontal pref-width="32" spacing="0">
+                <horizontal pref-width="38" spacing="0">
                     <button on-click="move_config_up" text="▲" pref-width="6" pref-height="8" hover-hint="Move up"/>
                     <button on-click="move_config_down" text="▼" pref-width="6" pref-height="8" hover-hint="Move down"/>
                     <button on-click="show_name_keyboard" text="/" pref-width="6" pref-height="8" hover-hint="Rename"/>
+                    <button on-click="show_color_picker" text="◉" pref-width="6" pref-height="8" hover-hint="Color"/>
                     <button on-click="new_config_click" text="+" pref-width="6" pref-height="8" face-color="#00b616" hover-hint="New"/>
                     <button on-click="delete_config_click" text="~delete_button_text" pref-width="6" pref-height="8" face-color="#c81717" hover-hint="Delete"/>
                 </horizontal>
             </horizontal>
             <modal-keyboard id="name_keyboard" value="cur_config_name" show-event="show_name_keyboard" on-enter="on_name_entered"/>
+            <modal-color-picker id="color_picker" show-event="show_color_picker" on-done="on_color_done"/>
 
             <settings-container pref-height="60">
                 <vertical vertical-fit="PreferredSize" pref-width="90">

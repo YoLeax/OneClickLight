@@ -79,6 +79,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
             NotifyPropertyChanged(nameof(CurConfigName));
             NotifyAllConfigValues();
             UpdateActionButtons();
+            UpdateColorButton();
         }
     }
 
@@ -89,6 +90,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
 
     private Transform? _contentTransform;
     private ModalKeyboard? _nameKeyboard;
+    private ModalColorPicker? _colorPicker;
 
     public GameplayMenu(PluginConfig pluginConfig, SettingsApplier settingsApplier)
     {
@@ -192,6 +194,16 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
             _nameKeyboard = mk;
             break;
         }
+
+        // Find color picker
+        foreach (var cp in Resources.FindObjectsOfTypeAll<ModalColorPicker>())
+        {
+            _colorPicker = cp;
+            break;
+        }
+
+        // Apply current config color to ◉ button
+        UpdateColorButton();
     }
 
     #endregion
@@ -240,13 +252,14 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
 
     private void CreateConfigButton(string name, int index, Transform parent)
     {
-        // BSML markup for a styled button
-        var markup = $"<button text=\"{name}\" font-size=\"{ButtonFontSize}\" pref-height=\"{ButtonHeight}\" on-click=\"on_slot_click\"/>";
+        var colorStr = _cfg.GetSlot(index).Color;
+        var text = $"<color={colorStr}>{name}</color>";
+
+        // BSML markup for a styled button (use escaped color tags for XML safety)
+        var markup = $"<button text=\"&lt;color={colorStr}&gt;{name}&lt;/color&gt;\" font-size=\"{ButtonFontSize}\" pref-height=\"{ButtonHeight}\" on-click=\"on_slot_click\"/>";
 
         var host = new ButtonActionHost(() => OnConfigSlotClick(index));
-        var parserParams = BSMLParser.Instance.Parse(markup, parent.gameObject, host);
-        if (parserParams == null) return;
-
+        BSMLParser.Instance.Parse(markup, parent.gameObject, host);
     }
 
     private void OnConfigSlotClick(int index)
@@ -313,6 +326,45 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
         {
             _cfg.SetSlotName(_curConfigIndex, value);
             RefreshDropdown();
+        }
+    }
+
+    [UIValue("cur_config_color")]
+    private Color CurConfigColor
+    {
+        get => ColorUtility.TryParseHtmlString(_cfg.GetSlot(_curConfigIndex).Color, out var c) ? c : Color.white;
+        set
+        {
+            _cfg.GetSlot(_curConfigIndex).Color = $"#{ColorUtility.ToHtmlStringRGB(value)}";
+            _cfg.Changed();
+            UpdateColorButton();
+            RebuildMainPageButtons();
+        }
+    }
+
+    [UIAction("show_color_picker")]
+    private void ShowColorPicker()
+    {
+        _colorPicker?.ModalView?.Show(true);
+    }
+
+    [UIAction("on_color_done")]
+    private void OnColorDone(Color value)
+    {
+        CurConfigColor = value;
+    }
+
+    private void UpdateColorButton()
+    {
+        var colorHex = _cfg.GetSlot(_curConfigIndex).Color;
+        foreach (var btn in Resources.FindObjectsOfTypeAll<Button>())
+        {
+            var tmp = btn.GetComponentInChildren<TMPro.TextMeshProUGUI>();
+            if (tmp != null && (tmp.text == "◉" || tmp.text.Contains("◉")))
+            {
+                tmp.text = $"<color={colorHex}>◉</color>";
+                break;
+            }
         }
     }
 
