@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using UnityEngine;
 using IPA.Config.Stores;
 using IPA.Config.Stores.Attributes;
 using IPA.Config.Stores.Converters;
@@ -12,12 +11,9 @@ namespace OneClickLight;
 internal class PluginConfig
 {
     internal static PluginConfig? Instance { get; set; }
+    internal const int MaxSlotCount = 12;
 
     public virtual bool NotInitialized { get; set; } = true;
-
-    // Deprecated: kept for BSIPA deserialization compatibility with old config files
-    public virtual LightConfig? CfgOn { get; set; }
-    public virtual LightConfig? CfgOff { get; set; }
 
     [UseConverter(typeof(ListConverter<LightConfig>))]
     [NonNullable]
@@ -37,6 +33,7 @@ internal class PluginConfig
 
     internal void AddSlot(string name, LightConfig config)
     {
+        if (Slots.Count >= MaxSlotCount) return;
         Slots.Add(config);
         Slots[Slots.Count - 1].Name = name;
     }
@@ -64,6 +61,10 @@ internal class PluginConfig
             };
             NotInitialized = false;
         }
+
+        // Enforce max slot count (handles manually edited JSON)
+        if (Slots.Count > MaxSlotCount)
+            Slots.RemoveRange(MaxSlotCount, Slots.Count - MaxSlotCount);
     }
 
     public class LightConfig

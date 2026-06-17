@@ -448,6 +448,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
         bool canMoveUp = _curConfigIndex > 0;
         bool canMoveDown = _curConfigIndex < _cfg.SlotCount - 1;
         bool canDelete = _cfg.SlotCount > 1;
+        bool canAdd = _cfg.SlotCount < PluginConfig.MaxSlotCount;
 
         foreach (var btn in Resources.FindObjectsOfTypeAll<Button>())
         {
@@ -459,6 +460,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
                 case "▲": btn.interactable = canMoveUp; break;
                 case "▼": btn.interactable = canMoveDown; break;
                 case "-": case "?": btn.interactable = canDelete; break;
+                case "+": btn.interactable = canAdd; break;
             }
         }
     }
