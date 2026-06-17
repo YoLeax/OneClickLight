@@ -55,9 +55,9 @@ internal class PluginConfig
         {
             Slots = new List<LightConfig>
             {
-                LightConfig.CreateDefault("ON"),
-                LightConfig.CreateDefault("OFF"),
-                LightConfig.CreateDefault("Half-ON"),
+                LightConfig.CreateDefaultOn(),
+                LightConfig.CreateDefaultHalfOn(),
+                LightConfig.CreateDefaultOff(),
             };
             NotInitialized = false;
         }
@@ -73,11 +73,18 @@ internal class PluginConfig
 
         public static LightConfig CreateDefault(string name) => new LightConfig { Name = name };
 
+        /// <summary>Default ON: all effects enabled, permissive settings.</summary>
+        public static LightConfig CreateDefaultOn() => new LightConfig {
+            Name = "ON",
+            Color = "#00b616"
+        };
+
         public static LightConfig CreateDefaultOff()
         {
             return new LightConfig
             {
                 Name = "OFF",
+                Color = "#c81717",
                 EnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects,
                 EpEnvironmentEffects = EnvironmentEffectsFilterPreset.NoEffects,
                 NoTextsOrHUDs = false,
@@ -98,15 +105,11 @@ internal class PluginConfig
             return new LightConfig
             {
                 Name = "Half-ON",
-                OEnvironmentEffects = false,
-                OEpEnvironmentEffects = false,
-                ONoTextsOrHUDs = false,
-                OAdvancedHUD = false,
-                OOverrideDefaultEnvironments = false,
-                OOverrideDefaultColors = false,
-                ChromaDisableEnvironmentEnhancements = true,
-                ChromaDisableNoteColoring = true,
-                ChromaDisableChromaEvents = true,
+                Color = "#268ED2",
+                NoTextsOrHUDs = false,
+                AdvancedHUD = true,
+                ColorTypeOverride = 1,
+                AllowCustomSongNoteColors = false,
             };
         }
 
@@ -141,7 +144,7 @@ internal class PluginConfig
         public virtual bool OverrideDefaultColors { get; set; } = false;
 
         /// <summary>Only available in Beat Saber 1.40.0+. 0=All, 1=NotesOnly.</summary>
-        public virtual bool OColorTypeOverride { get; set; } = false;
+        public virtual bool OColorTypeOverride { get; set; } = true;
         public virtual int ColorTypeOverride { get; set; } = 0; // 0=All, 1=NotesOnly
 
         // SongCore
