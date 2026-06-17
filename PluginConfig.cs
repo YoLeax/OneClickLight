@@ -108,6 +108,7 @@ internal class PluginConfig
                 Color = "#268ED2",
                 NoTextsOrHUDs = false,
                 AdvancedHUD = true,
+                OverrideDefaultColors = typeof(ColorSchemesSettings).GetProperty("colorOverrideType") != null,  // 1.40+ override notes color only
                 ColorTypeOverride = 1,
                 AllowCustomSongNoteColors = false,
             };
