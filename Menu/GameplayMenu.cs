@@ -324,7 +324,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
         get => _cfg.GetSlot(_curConfigIndex).Name;
         set
         {
-            _cfg.SetSlotName(_curConfigIndex, value);
+            _cfg.SetSlotName(_curConfigIndex, _cfg.GetUniqueName(value, _curConfigIndex));
             RefreshDropdown();
         }
     }
@@ -377,7 +377,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
     [UIAction("on_name_entered")]
     private void OnNameEntered(string value)
     {
-        _cfg.SetSlotName(_curConfigIndex, value);
+        _cfg.SetSlotName(_curConfigIndex, _cfg.GetUniqueName(value, _curConfigIndex));
         RefreshDropdown();
         NotifyPropertyChanged(nameof(CurConfigName));
     }
@@ -385,7 +385,8 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
     [UIAction("new_config_click")]
     private void NewConfig_Click()
     {
-        _cfg.AddSlot($"Config {_cfg.SlotCount + 1}", PluginConfig.LightConfig.CreateDefault($"Config {_cfg.SlotCount + 1}"));
+        var newName = _cfg.GetUniqueName("Config");
+        _cfg.AddSlot(newName, PluginConfig.LightConfig.CreateDefault(newName));
         _cfg.Changed();
 
         CurConfigIndex = _cfg.SlotCount - 1;

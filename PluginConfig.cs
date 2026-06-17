@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using IPA.Config.Stores;
 using IPA.Config.Stores.Attributes;
@@ -29,6 +30,16 @@ internal class PluginConfig
     internal void SetSlotName(int index, string name)
     {
         if (index >= 0 && index < Slots.Count) Slots[index].Name = name;
+    }
+
+    /// <summary>Find a unique name by appending (n) if needed. excludeIndex skips a slot (for renaming).</summary>
+    internal string GetUniqueName(string baseName, int excludeIndex = -1)
+    {
+        bool Exists(string name) => Slots.Where((s, i) => i != excludeIndex).Any(s => s.Name == name);
+        if (!Exists(baseName)) return baseName;
+        int n = 2;
+        while (Exists($"{baseName} {n}")) n++;
+        return $"{baseName} {n}";
     }
 
     internal void AddSlot(string name, LightConfig config)
