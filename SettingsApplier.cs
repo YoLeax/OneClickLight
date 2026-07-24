@@ -1,6 +1,11 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using BeatSaberMarkupLanguage.Components.Settings;
+using BeatSaberMarkupLanguage.GameplaySetup;
+using UnityEngine;
 using Zenject;
 
 namespace OneClickLight;
@@ -9,11 +14,22 @@ internal class SettingsApplier
 {
     private readonly PlayerDataModel _playerDataModel;
     private readonly DiContainer _container;
+    private readonly GameplaySetup _gameplaySetup;
+    private readonly GameplaySetupViewController _gameplaySetupViewController;
+    private readonly StandardLevelDetailViewController _levelDetailViewController;
 
-    public SettingsApplier(PlayerDataModel playerDataModel, DiContainer container)
+    public SettingsApplier(
+        PlayerDataModel playerDataModel,
+        DiContainer container,
+        GameplaySetup gameplaySetup,
+        GameplaySetupViewController gameplaySetupViewController,
+        StandardLevelDetailViewController levelDetailViewController)
     {
         _playerDataModel = playerDataModel;
         _container = container;
+        _gameplaySetup = gameplaySetup;
+        _gameplaySetupViewController = gameplaySetupViewController;
+        _levelDetailViewController = levelDetailViewController;
     }
 
     public void Apply(PluginConfig.LightConfig cfg)
@@ -38,64 +54,116 @@ internal class SettingsApplier
         TrySetColorTypeOverride(playerData, cfg);
 
         // SongCore — config lives in Zenject container
-        TrySetSongCoreSetting(cfg.OAllowCustomSongNoteColors, cfg.AllowCustomSongNoteColors, "CustomSongNoteColors");
-        TrySetSongCoreSetting(cfg.OAllowCustomSongObstacleColors, cfg.AllowCustomSongObstacleColors, "CustomSongObstacleColors");
-        TrySetSongCoreSetting(cfg.OAllowCustomSongEnvironmentColors, cfg.AllowCustomSongEnvironmentColors, "CustomSongEnvironmentColors");
+        TrySetSongCoreSetting(
+            cfg.OAllowCustomSongNoteColors,
+            cfg.AllowCustomSongNoteColors,
+            "CustomSongNoteColors",
+            "NoteColors");
+        TrySetSongCoreSetting(
+            cfg.OAllowCustomSongObstacleColors,
+            cfg.AllowCustomSongObstacleColors,
+            "CustomSongObstacleColors",
+            "ObstacleColors");
+        TrySetSongCoreSetting(
+            cfg.OAllowCustomSongEnvironmentColors,
+            cfg.AllowCustomSongEnvironmentColors,
+            "CustomSongEnvironmentColors",
+            "EnvironmentColors");
 
         // Chroma
-        ApplyChromaSetting(cfg.OChromaDisableChromaEvents, cfg.ChromaDisableChromaEvents, "ChromaEventsDisabledSetting");
-        ApplyChromaSetting(cfg.OChromaDisableEnvironmentEnhancements, cfg.ChromaDisableEnvironmentEnhancements, "EnvironmentEnhancementsDisabledSetting");
-        ApplyChromaSetting(cfg.OChromaDisableNoteColoring, cfg.ChromaDisableNoteColoring, "NoteColoringDisabledSetting");
-        ApplyChromaSetting(cfg.OChromaForceZenModeWalls, cfg.ChromaForceZenModeWalls, "ForceZenWallsEnabledSetting");
-        ApplyChromaSetting(cfg.OChromaUseCustomEnvironment, cfg.ChromaUseCustomEnvironment, "CustomEnvironmentEnabledSetting");
+        ApplyChromaSetting(
+            cfg.OChromaDisableChromaEvents,
+            cfg.ChromaDisableChromaEvents,
+            "ChromaEventsDisabled",
+            "ChromaEventsDisabledSetting");
+        ApplyChromaSetting(
+            cfg.OChromaDisableEnvironmentEnhancements,
+            cfg.ChromaDisableEnvironmentEnhancements,
+            "EnvironmentEnhancementsDisabled",
+            "EnvironmentEnhancementsDisabledSetting");
+        ApplyChromaSetting(
+            cfg.OChromaDisableNoteColoring,
+            cfg.ChromaDisableNoteColoring,
+            "NoteColoringDisabled",
+            "NoteColoringDisabledSetting");
+        ApplyChromaSetting(
+            cfg.OChromaForceZenModeWalls,
+            cfg.ChromaForceZenModeWalls,
+            "ForceZenWallsEnabled",
+            "ForceZenWallsEnabledSetting");
+        ApplyChromaSetting(
+            cfg.OChromaUseCustomEnvironment,
+            cfg.ChromaUseCustomEnvironment,
+            "CustomEnvironmentEnabled",
+            "CustomEnvironmentEnabledSetting");
 
         // JDFixer
-        TrySetModProperty("JDFixer", "JDFixer.PluginConfig",
-            cfg.OJDFixerEnabled, cfg.JDFixerEnabled, "enabled");
+        if (cfg.OJDFixerEnabled &&
+            !TrySetModUiProperty(
+                "JDFixer",
+                new[]
+                {
+                    "JDFixer.UI.ModifierUI",
+                    "JDFixer.UI.LegacyModifierUI",
+                    "JDFixer.UI.CustomOnlineUI",
+                },
+                "Enabled",
+                cfg.JDFixerEnabled))
+        {
+            TrySetModProperty(
+                "JDFixer",
+                "JDFixer.PluginConfig",
+                cfg.JDFixerEnabled,
+                "enabled");
+        }
 
         // NoAutoExposure
-        TrySetModProperty("NoAutoExposure", "NoAutoExposure.Config",
-            cfg.ONoAutoExposureEnabled, cfg.NoAutoExposureEnabled, "Enabled");
+        if (cfg.ONoAutoExposureEnabled &&
+            !TrySetModUiProperty(
+                "NoAutoExposure",
+                new[] { "NoAutoExposure.Menu.GameplayMenu" },
+                "Enabled",
+                cfg.NoAutoExposureEnabled))
+        {
+            TrySetModProperty(
+                "NoAutoExposure",
+                "NoAutoExposure.Config",
+                cfg.NoAutoExposureEnabled,
+                "Enabled");
+        }
 
+        RefreshBaseGameUi();
+        RefreshModToggleUi();
         _playerDataModel.Save();
+        _levelDetailViewController.RefreshContentLevelDetailView();
         Plugin.Log.Info("Applied config");
     }
 
-    // ── SongCore (Zenject + assembly scan fallback) ──
+    // ── SongCore ──
 
-    private void TrySetSongCoreSetting(bool shouldOverride, bool value, string propertyName)
+    private void TrySetSongCoreSetting(
+        bool shouldOverride,
+        bool value,
+        string configPropertyName,
+        string uiPropertyName)
     {
         if (!shouldOverride) return;
 
-        try
+        if (TrySetModUiProperty(
+                "SongCore",
+                new[] { "SongCore.UI.SettingsController" },
+                uiPropertyName,
+                value))
         {
-            var assembly = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => a.GetName().Name == "SongCore");
-            if (assembly == null) return;
-
-            // Try known type names (differs between SongCore versions)
-            foreach (var typeName in new[] { "SongCore.PluginConfig", "SongCore.SConfiguration" })
-            {
-                var configType = assembly.GetType(typeName);
-                if (configType == null) continue;
-
-                // 1.40.x: config lives in Zenject container
-                var instance = _container.TryResolve(configType);
-                // 1.39.x: config exposed via static reference
-                if (instance == null) instance = FindConfigInstance(assembly, configType);
-                if (instance == null) continue;
-
-                if (TrySetAnyMember(instance, configType, propertyName, value))
-                {
-                    var changed = configType.GetMethod("Changed", BindingFlags.Public | BindingFlags.Instance);
-                    changed?.Invoke(instance, null);
-                    return;
-                }
-            }
+            return;
         }
-        catch (Exception ex)
+
+        foreach (var typeName in new[] { "SongCore.PluginConfig", "SongCore.SConfiguration" })
         {
-            Plugin.Log.Warn("[SongCore] Failed to set '" + propertyName + "': " + ex.Message);
+            if (TrySetModProperty("SongCore", typeName, value, configPropertyName))
+            {
+                return;
+            }
         }
     }
 
@@ -134,32 +202,127 @@ internal class SettingsApplier
 
     // ── Generic mod config helpers ──
 
-    private static void TrySetModProperty(
-        string assemblyName, string configTypeFullName,
-        bool shouldOverride, object value, string propertyName)
+    private bool TrySetModProperty(
+        string assemblyName,
+        string configTypeFullName,
+        object value,
+        string propertyName)
     {
-        if (!shouldOverride) return;
-
         try
         {
             var assembly = AppDomain.CurrentDomain.GetAssemblies()
                 .FirstOrDefault(a => a.GetName().Name == assemblyName);
-            if (assembly == null) return;
+            if (assembly == null) return false;
 
             var configType = assembly.GetType(configTypeFullName);
-            if (configType == null) return;
+            if (configType == null) return false;
 
-            var instance = FindConfigInstance(assembly, configType);
-            if (instance == null) return;
+            var instance = _container.TryResolve(configType) ??
+                           FindConfigInstance(assembly, configType);
+            if (instance == null) return false;
 
-            if (!TrySetAnyMember(instance, configType, propertyName, value)) return;
+            if (!TrySetAnyMember(instance, configType, propertyName, value)) return false;
 
-            var changed = configType.GetMethod("Changed", BindingFlags.Public | BindingFlags.Instance);
+            var changed = configType.GetMethod(
+                "Changed",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
             changed?.Invoke(instance, null);
+            return true;
         }
         catch (Exception ex)
         {
             Plugin.Log.Warn("[" + assemblyName + "] Failed to set '" + propertyName + "': " + ex.Message);
+            return false;
+        }
+    }
+
+    private bool TrySetModUiProperty(
+        string assemblyName,
+        IReadOnlyCollection<string> uiTypeFullNames,
+        string propertyName,
+        object value)
+    {
+        try
+        {
+            var assembly = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => a.GetName().Name == assemblyName);
+            if (assembly == null) return false;
+
+            var targetTypes = uiTypeFullNames
+                .Select(assembly.GetType)
+                .Where(type => type != null)
+                .Cast<Type>()
+                .ToArray();
+            if (targetTypes.Length == 0) return false;
+
+            var instances = new List<object>();
+            foreach (var targetType in targetTypes)
+            {
+                var resolved = _container.TryResolve(targetType);
+                if (resolved != null && !instances.Contains(resolved))
+                {
+                    instances.Add(resolved);
+                }
+            }
+
+            foreach (var host in GetGameplaySetupHosts())
+            {
+                if (targetTypes.Any(type => type.IsInstanceOfType(host)) &&
+                    !instances.Contains(host))
+                {
+                    instances.Add(host);
+                }
+            }
+
+            var changedAny = false;
+            foreach (var instance in instances)
+            {
+                changedAny |= TrySetAnyMember(
+                    instance,
+                    instance.GetType(),
+                    propertyName,
+                    value);
+            }
+
+            return changedAny;
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Warn("[" + assemblyName + "] Failed to set UI property '" +
+                            propertyName + "': " + ex.Message);
+            return false;
+        }
+    }
+
+    private IEnumerable<object> GetGameplaySetupHosts()
+    {
+        var menusField = _gameplaySetup.GetType().GetField(
+            "menus",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        if (!(menusField?.GetValue(_gameplaySetup) is IEnumerable menus))
+        {
+            yield break;
+        }
+
+        foreach (var menu in menus)
+        {
+            if (menu == null) continue;
+
+            var menuType = menu.GetType();
+            object? host = menuType
+                .GetProperty("Host", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(menu);
+
+            // BSML versions before GameplaySetupMenu exposed Host as a property
+            // used a lower-case field instead.
+            host ??= menuType
+                .GetField("host", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
+                ?.GetValue(menu);
+
+            if (host != null)
+            {
+                yield return host;
+            }
         }
     }
 
@@ -204,11 +367,92 @@ internal class SettingsApplier
         return false;
     }
 
+    // ── Base Game UI ──
+
+    private void RefreshBaseGameUi()
+    {
+        try
+        {
+            var panelField = _gameplaySetupViewController.GetType().GetField(
+                "_playerSettingsPanelController",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            if (!(panelField?.GetValue(_gameplaySetupViewController) is
+                    PlayerSettingsPanelController playerSettingsPanelController))
+            {
+                Plugin.Log.Warn("[BaseGame] Player settings panel was not found.");
+                return;
+            }
+
+            // PlayerSettingsPanelController caches both PlayerSpecificSettings and
+            // a one-shot _refreshed flag. SetData resets that cache and calls the
+            // game's own Refresh implementation for every Player Options control.
+            //
+            // Beat Saber 1.39.1 and 1.40.8 both take PlayerData here. Some older
+            // versions (including 1.29.1) take PlayerSpecificSettings instead, so
+            // keep a defensive fallback while resolving the runtime overload.
+            var setDataMethod = playerSettingsPanelController.GetType().GetMethod(
+                "SetData",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+                null,
+                new[] { typeof(PlayerData) },
+                null);
+            object setDataArgument = _playerDataModel.playerData;
+
+            if (setDataMethod == null)
+            {
+                setDataMethod = playerSettingsPanelController.GetType().GetMethod(
+                    "SetData",
+                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance,
+                    null,
+                    new[] { _playerDataModel.playerData.playerSpecificSettings.GetType() },
+                    null);
+                setDataArgument = _playerDataModel.playerData.playerSpecificSettings;
+            }
+
+            if (setDataMethod == null)
+            {
+                Plugin.Log.Warn("[BaseGame] Player settings SetData method was not found.");
+                return;
+            }
+
+            setDataMethod.Invoke(playerSettingsPanelController, new[] { setDataArgument });
+        }
+        catch (Exception ex)
+        {
+            Plugin.Log.Warn("[BaseGame] Failed to refresh player settings UI: " + ex.Message);
+        }
+    }
+
     // ── Chroma ──
 
-    private static void ApplyChromaSetting(bool shouldOverride, bool value, string propertyName)
+    private void ApplyChromaSetting(
+        bool shouldOverride,
+        bool value,
+        string configPropertyName,
+        string settablePropertyName)
     {
         if (!shouldOverride) return;
+
+        // The Config setters contain Chroma's runtime side effects. In particular,
+        // ChromaEventsDisabled registers or deregisters the "Chroma" SongCore
+        // capability. Writing SettableSetting.Value directly bypasses that logic.
+        if (TrySetModUiProperty(
+                "Chroma",
+                new[] { "Chroma.Settings.ChromaSettingsUI" },
+                configPropertyName,
+                value))
+        {
+            return;
+        }
+
+        if (TrySetModProperty(
+                "Chroma",
+                "Chroma.Settings.Config",
+                value,
+                configPropertyName))
+        {
+            return;
+        }
 
         try
         {
@@ -219,7 +463,9 @@ internal class SettingsApplier
             var settableType = assembly.GetType("Chroma.Settings.ChromaSettableSettings");
             if (settableType == null) return;
 
-            var settingProp = settableType.GetProperty(propertyName, BindingFlags.NonPublic | BindingFlags.Static);
+            var settingProp = settableType.GetProperty(
+                settablePropertyName,
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static);
             if (settingProp == null) return;
 
             var settingObj = settingProp.GetValue(null);
@@ -230,7 +476,34 @@ internal class SettingsApplier
         }
         catch (Exception ex)
         {
-            Plugin.Log.Warn("[Chroma] Failed to set '" + propertyName + "': " + ex.Message);
+            Plugin.Log.Warn("[Chroma] Failed to set '" + configPropertyName + "': " + ex.Message);
         }
+    }
+
+    private static void RefreshModToggleUi()
+    {
+        var refreshed = 0;
+        foreach (var toggleSetting in Resources.FindObjectsOfTypeAll<ToggleSetting>())
+        {
+            if (toggleSetting == null ||
+                toggleSetting.AssociatedValue == null ||
+                !toggleSetting.gameObject.scene.IsValid())
+            {
+                continue;
+            }
+
+            try
+            {
+                toggleSetting.ReceiveValue();
+                refreshed++;
+            }
+            catch (Exception ex)
+            {
+                Plugin.Log.Warn("[UI] Failed to refresh toggle '" +
+                                toggleSetting.name + "': " + ex.Message);
+            }
+        }
+
+        Plugin.Log.Debug("[UI] Refreshed " + refreshed + " mod setting toggles.");
     }
 }

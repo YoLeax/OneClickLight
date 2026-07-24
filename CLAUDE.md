@@ -36,7 +36,9 @@ dotnet build -c Release
 ### 依赖注入
 
 - **`Installers/AppInstaller.cs`** — App 级别安装器，将 `PluginConfig` 注册为全局单例
-- **`Installers/MenuInstaller.cs`** — Menu 级别安装器，绑定 `GameplayMenu` 为单例
+- **`Installers/MenuInstaller.cs`** — Menu 级别安装器，绑定 `GameplayMenu` 和 `SettingsApplier` 为单例
+  - `SettingsApplier` 通过目标 Mod 自己的 UI/config setter 应用设置，以保留 capability 注册、缓存刷新和配置通知等副作用
+  - 应用后重载原版 Player Options 面板、刷新 BSML toggle 和当前谱面详情，使 Base Game/Mod UI 与 SongCore requirement 检查立即同步
 
 ### 配置
 

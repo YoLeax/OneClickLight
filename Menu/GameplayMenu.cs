@@ -54,6 +54,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
     private readonly PluginConfig _cfg;
     private readonly SettingsApplier _settingsApplier;
     private readonly bool _isVersion40Plus;
+    private readonly bool _isChromaAvailable;
     private readonly bool _isJDFixerAvailable;
     private readonly bool _isNoAutoExposureAvailable;
 
@@ -100,6 +101,7 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
         _cfg = pluginConfig;
         _settingsApplier = settingsApplier;
         _isVersion40Plus = typeof(ColorSchemesSettings).GetProperty("colorOverrideType") != null;
+        _isChromaAvailable = PluginManager.GetPluginFromId("Chroma") != null;
         _isJDFixerAvailable = PluginManager.GetPluginFromId("JDFixer") != null;
         _isNoAutoExposureAvailable = PluginManager.GetPluginFromId("NoAutoExposure") != null;
     }
@@ -627,6 +629,8 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
 
 
     #region Chroma
+
+    [UIValue("is_chroma_available")] private bool IsChromaAvailable => _isChromaAvailable;
 
     // Use Custom Environment
     [UIValue("o_chroma_use_custom_environment")] private bool OChromaUseCustomEnvironment => CurLightConfig.OChromaUseCustomEnvironment;

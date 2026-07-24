@@ -11,6 +11,9 @@ internal class MenuInstaller : Installer
 {
     public override void InstallBindings()
     {
+        // SettingsApplier depends on menu-scoped UI objects so target mod controls
+        // and the currently selected level can be refreshed immediately.
+        Container.Bind<SettingsApplier>().AsSingle();
         Container.BindInterfacesTo<GameplayMenu>().AsSingle();
     }
 }

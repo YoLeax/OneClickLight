@@ -125,38 +125,38 @@
                     </horizontal>
 
                     <!-- Chroma -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_chroma_available">
                         <vertical pref-width="20"/>
                         <vertical pref-width="68">
                             <text text="Chroma" align="Center"/>
                         </vertical>
                     </horizontal>
                     <!-- Use Custom Environment -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_chroma_available">
                         <toggle-setting value="o_chroma_use_custom_environment" on-change="on_o_chroma_use_custom_environment_change" bind-value="true" text="" min-width="20" pref-width="20"/>
                         <text text="Use Custom Environment" align="Left"/>
                         <toggle-setting value="chroma_use_custom_environment" on-change="on_chroma_use_custom_environment_change" bind-value="true" text=""/>
                     </horizontal>
                     <!-- Disable Environment Enhancements -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_chroma_available">
                         <toggle-setting value="o_chroma_disable_environment_enhancements" on-change="on_o_chroma_disable_environment_enhancements_change" bind-value="true" text="" min-width="20" pref-width="20"/>
                         <text text="Disable Environment Enhancements" align="Left"/>
                         <toggle-setting value="chroma_disable_environment_enhancements" on-change="on_chroma_disable_environment_enhancements_change" bind-value="true" text=""/>
                     </horizontal>
                     <!-- Disable Note Coloring -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_chroma_available">
                         <toggle-setting value="o_chroma_disable_note_coloring" on-change="on_o_chroma_disable_note_coloring_change" bind-value="true" text="" min-width="20" pref-width="20"/>
                         <text text="Disable Note Coloring" align="Left"/>
                         <toggle-setting value="chroma_disable_note_coloring" on-change="on_chroma_disable_note_coloring_change" bind-value="true" text=""/>
                     </horizontal>
                     <!-- Disable Chroma Events -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_chroma_available">
                         <toggle-setting value="o_chroma_disable_chroma_events" on-change="on_o_chroma_disable_chroma_events_change" bind-value="true" text="" min-width="20" pref-width="20"/>
                         <text text="Disable Chroma Events" align="Left"/>
                         <toggle-setting value="chroma_disable_chroma_events" on-change="on_chroma_disable_chroma_events_change" bind-value="true" text=""/>
                     </horizontal>
                     <!-- Force Zen Mode Walls -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_chroma_available">
                         <toggle-setting value="o_chroma_force_zen_mode_walls" on-change="on_o_chroma_force_zen_mode_walls_change" bind-value="true" text="" min-width="20" pref-width="20"/>
                         <text text="Force Zen Mode Walls" align="Left"/>
                         <toggle-setting value="chroma_force_zen_mode_walls" on-change="on_chroma_force_zen_mode_walls_change" bind-value="true" text=""/>
