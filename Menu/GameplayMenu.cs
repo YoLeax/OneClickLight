@@ -11,6 +11,7 @@ using BeatSaberMarkupLanguage.GameplaySetup;
 using BeatSaberMarkupLanguage.Attributes;
 using BeatSaberMarkupLanguage.Parser;
 using IPA.Logging;
+using IPA.Loader;
 using ModestTree;
 using Zenject;
 
@@ -53,6 +54,8 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
     private readonly PluginConfig _cfg;
     private readonly SettingsApplier _settingsApplier;
     private readonly bool _isVersion40Plus;
+    private readonly bool _isJDFixerAvailable;
+    private readonly bool _isNoAutoExposureAvailable;
 
     private ConfirmState _deleteState = ConfirmState.Default;
     private float _deleteWaitUntil = 0f;
@@ -97,6 +100,8 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
         _cfg = pluginConfig;
         _settingsApplier = settingsApplier;
         _isVersion40Plus = typeof(ColorSchemesSettings).GetProperty("colorOverrideType") != null;
+        _isJDFixerAvailable = PluginManager.GetPluginFromId("JDFixer") != null;
+        _isNoAutoExposureAvailable = PluginManager.GetPluginFromId("NoAutoExposure") != null;
     }
 
     public void Initialize()
@@ -656,13 +661,24 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
     #endregion
 
 
-    #region JDFixer
+    #region Extra
+
+    [UIValue("is_extra_available")] private bool IsExtraAvailable =>
+        _isJDFixerAvailable || _isNoAutoExposureAvailable;
 
     // JDFixer Enabled
+    [UIValue("is_jd_fixer_available")] private bool IsJDFixerAvailable => _isJDFixerAvailable;
     [UIValue("o_jd_fixer_enabled")] private bool OJDFixerEnabled => CurLightConfig.OJDFixerEnabled;
     [UIAction("on_o_jd_fixer_enabled_change")] private void OnJDFixerEnabledOChange(bool value) => CurLightConfig.OJDFixerEnabled = value;
     [UIValue("jd_fixer_enabled")] private bool JDFixerEnabled => CurLightConfig.JDFixerEnabled;
     [UIAction("on_jd_fixer_enabled_change")] private void OnJDFixerEnabledChange(bool value) => CurLightConfig.JDFixerEnabled = value;
+
+    // NoAutoExposure Enabled
+    [UIValue("is_no_auto_exposure_available")] private bool IsNoAutoExposureAvailable => _isNoAutoExposureAvailable;
+    [UIValue("o_no_auto_exposure_enabled")] private bool ONoAutoExposureEnabled => CurLightConfig.ONoAutoExposureEnabled;
+    [UIAction("on_o_no_auto_exposure_enabled_change")] private void OnNoAutoExposureEnabledOChange(bool value) => CurLightConfig.ONoAutoExposureEnabled = value;
+    [UIValue("no_auto_exposure_enabled")] private bool NoAutoExposureEnabled => CurLightConfig.NoAutoExposureEnabled;
+    [UIAction("on_no_auto_exposure_enabled_change")] private void OnNoAutoExposureEnabledChange(bool value) => CurLightConfig.NoAutoExposureEnabled = value;
 
     #endregion
 
@@ -709,6 +725,8 @@ internal class GameplayMenu : IInitializable, ITickable, IDisposable, INotifyPro
 
         NotifyPropertyChanged(nameof(OJDFixerEnabled));
         NotifyPropertyChanged(nameof(JDFixerEnabled));
+        NotifyPropertyChanged(nameof(ONoAutoExposureEnabled));
+        NotifyPropertyChanged(nameof(NoAutoExposureEnabled));
     }
 
     private void NotifyPropertyChanged(string name)

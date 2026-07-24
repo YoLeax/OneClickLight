@@ -162,18 +162,24 @@
                         <toggle-setting value="chroma_force_zen_mode_walls" on-change="on_chroma_force_zen_mode_walls_change" bind-value="true" text=""/>
                     </horizontal>
 
-                    <!-- JDFixer -->
-                    <horizontal spacing="2">
+                    <!-- Extra -->
+                    <horizontal spacing="2" active="~is_extra_available">
                         <vertical pref-width="20"/>
                         <vertical pref-width="68">
-                            <text text="JDFixer" align="Center"/>
+                            <text text="Extra" align="Center"/>
                         </vertical>
                     </horizontal>
                     <!-- JDFixer Enabled -->
-                    <horizontal spacing="2">
+                    <horizontal spacing="2" active="~is_jd_fixer_available">
                         <toggle-setting value="o_jd_fixer_enabled" on-change="on_o_jd_fixer_enabled_change" bind-value="true" text="" min-width="20" pref-width="20"/>
                         <text text="JDFixer Enabled" align="Left"/>
                         <toggle-setting value="jd_fixer_enabled" on-change="on_jd_fixer_enabled_change" bind-value="true" text=""/>
+                    </horizontal>
+                    <!-- NoAutoExposure Enabled -->
+                    <horizontal spacing="2" active="~is_no_auto_exposure_available">
+                        <toggle-setting value="o_no_auto_exposure_enabled" on-change="on_o_no_auto_exposure_enabled_change" bind-value="true" text="" min-width="20" pref-width="20"/>
+                        <text text="NoAutoExposure Enabled" align="Left"/>
+                        <toggle-setting value="no_auto_exposure_enabled" on-change="on_no_auto_exposure_enabled_change" bind-value="true" text=""/>
                     </horizontal>
                 </vertical>
             </settings-container>

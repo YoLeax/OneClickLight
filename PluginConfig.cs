@@ -62,7 +62,7 @@ internal class PluginConfig
 
     internal void Init()
     {
-        if (NotInitialized || Slots.Count == 0)
+        if (Slots.Count == 0)
         {
             Slots = new List<LightConfig>
             {
@@ -70,8 +70,9 @@ internal class PluginConfig
                 LightConfig.CreateDefaultHalfOn(),
                 LightConfig.CreateDefaultOff(),
             };
-            NotInitialized = false;
         }
+
+        NotInitialized = false;
 
         // Enforce max slot count (handles manually edited JSON)
         if (Slots.Count > MaxSlotCount)
@@ -187,9 +188,12 @@ internal class PluginConfig
         public virtual bool OChromaForceZenModeWalls { get; set; } = false;
         public virtual bool ChromaForceZenModeWalls { get; set; } = false;
 
-        // JDFixer
+        // Extra
 
         public virtual bool OJDFixerEnabled { get; set; } = false;
         public virtual bool JDFixerEnabled { get; set; } = false;
+
+        public virtual bool ONoAutoExposureEnabled { get; set; } = false;
+        public virtual bool NoAutoExposureEnabled { get; set; } = false;
     }
 }

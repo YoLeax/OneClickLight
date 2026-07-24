@@ -4,19 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-**OneClickLight** 是一个 Beat Saber (v1.39.1 Steam) 的 BSIPA 插件，提供一键切换灯光/环境/颜色/Chroma 配置的功能。玩家在 Gameplay 设置页中可以快速在 "ON" 和 "OFF" 两套配置之间切换。
+**OneClickLight** 是一个支持 Beat Saber 1.39.1–1.40.8 Steam 版的 BSIPA 插件，提供一键切换灯光、环境、颜色和其他视效 Mod 配置的功能。玩家可以在 Gameplay 设置页中创建和切换最多 12 套配置，默认包含 `ON`、`Half-ON` 和 `OFF`。
 
 ## 构建命令
 
 ```bash
-# 构建项目（需要 BeatSaber 安装路径通过 $(BeatSaberDir) 提供）
+# 构建项目（需要 Beat Saber 安装路径通过 $(GameDirectory) 提供）
 dotnet build
 
 # Release 构建
 dotnet build -c Release
 ```
 
-项目使用 `BeatSaberModdingTools.Tasks` NuGet 包，构建后会自动将输出复制到 Beat Saber 的 `Plugins` 目录。需要在 `OneClickLight.csproj.user` 中设置 `<BeatSaberDir>` 路径。
+项目使用 `BeatSaberModdingTools.Tasks` NuGet 包，构建后会自动将输出复制到 Beat Saber 的 `Plugins` 目录。需要在 `OneClickLight.csproj.user` 中设置 `<GameDirectory>` 路径。
 
 ## 技术栈
 
@@ -40,10 +40,10 @@ dotnet build -c Release
 
 ### 配置
 
-- **`PluginConfig.cs`** — BSIPA 配置类，包含两个 `LightConfig` 实例 (`CfgOn` / `CfgOff`)
+- **`PluginConfig.cs`** — BSIPA 配置类，包含最多 12 个 `LightConfig` 配置槽
   - `LightConfig` 嵌套类包含所有灯光/环境相关配置项，每项都有一个 "O" 前缀的 override 布尔值和实际值
-  - 涵盖 BaseGame、SongCore、Chroma、JDFixer 四个模块的配置
-  - `Init()` 方法为 `CfgOff` 设置默认值（关闭所有特效）
+  - 涵盖 BaseGame、SongCore、Chroma 以及 Extra（JDFixer、NoAutoExposure）配置
+  - `Init()` 方法创建 `ON`、`Half-ON`、`OFF` 默认槽并限制最大槽数
 
 ### UI
 
@@ -65,4 +65,4 @@ dotnet build -c Release
 
 ## Beat Saber 游戏程序集
 
-项目引用了多个 Beat Saber 游戏程序集（通过 `$(BeatSaberDir)` 路径），包括 `Main.dll`, `HMUI.dll`, `Zenject.dll`, `BSML.dll`, `SiraUtil.dll` 等。
+项目引用了多个 Beat Saber 游戏程序集（通过 `$(GameDirectory)` 路径），包括 `Main.dll`, `HMUI.dll`, `Zenject.dll`, `BSML.dll`, `SiraUtil.dll` 等。

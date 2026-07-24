@@ -53,6 +53,10 @@ internal class SettingsApplier
         TrySetModProperty("JDFixer", "JDFixer.PluginConfig",
             cfg.OJDFixerEnabled, cfg.JDFixerEnabled, "enabled");
 
+        // NoAutoExposure
+        TrySetModProperty("NoAutoExposure", "NoAutoExposure.Config",
+            cfg.ONoAutoExposureEnabled, cfg.NoAutoExposureEnabled, "Enabled");
+
         _playerDataModel.Save();
         Plugin.Log.Info("Applied config");
     }
